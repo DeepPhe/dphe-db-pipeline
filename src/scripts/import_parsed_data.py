@@ -607,7 +607,7 @@ class DatabaseImporter:
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent.parent
     data_dir = base_dir / "extracted_cancer_data"
     db_path = base_dir / "deepphe" / "deepphe_sqlite_compressed"
 

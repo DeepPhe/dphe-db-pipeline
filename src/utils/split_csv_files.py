@@ -226,7 +226,7 @@ class CSVSplitter:
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent.parent
     input_dir = base_dir / 'extracted_cancer_data'
     output_dir = base_dir / 'extracted_cancer_data_split'
 

@@ -665,7 +665,7 @@ def process_concept_data(db_path: str, output_dir: Path, concept_count: queue.Qu
 def main():
     """Main entry point - reads from deepphe_sqlite_compressed database with 2 parallel threads."""
     # Configuration
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent.parent
     output_dir = base_dir / 'extracted_cancer_data'
     db_path = base_dir / "deepphe/deepphe_sqlite_compressed"
 

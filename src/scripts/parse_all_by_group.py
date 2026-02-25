@@ -60,7 +60,7 @@ def load_and_run_script(script_name: str, script_path: Path) -> None:
 
 def main():
     """Main entry point - execute all parse scripts in parallel threads."""
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent.parent
 
     # Define scripts to run
     scripts = [

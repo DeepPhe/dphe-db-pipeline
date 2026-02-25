@@ -1,6 +1,14 @@
 # AI-generated content (project-specific)
 .ai/
 
+# Deprecated root-level scripts (moved to src/ - keep for now for backward compatibility)
+# Uncomment these after verifying new structure works:
+# /check_encodings.py
+# /create_concepts_table.py
+# /explore_database.py
+# /split_csv_files.py
+# /test_parse_concepts.py
+
 # Python
 __pycache__/
 *.py[cod]

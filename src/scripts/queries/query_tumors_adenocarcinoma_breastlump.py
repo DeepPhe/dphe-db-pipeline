@@ -119,7 +119,7 @@ def query_patients_with_tumor_types(
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent.parent
     db_path = base_dir / "deepphe" / "deepphe_sqlite_compressed"
 
     if not db_path.exists():

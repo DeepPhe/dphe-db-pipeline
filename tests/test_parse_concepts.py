@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, Set, Tuple
 from collections import defaultdict
 
+
 def parse_concepts_csv(csv_file: Path) -> Dict[Tuple[str, str, bool], Set[str]]:
     """Parse extracted_concepts.csv and group patients by concept."""
     concepts_by_group = defaultdict(set)
@@ -31,7 +32,7 @@ def parse_concepts_csv(csv_file: Path) -> Dict[Tuple[str, str, bool], Set[str]]:
 
 def main():
     """Test the parsing logic."""
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent
     concepts_file = base_dir / "extracted_cancer_data" / "extracted_concepts.csv"
 
     if not concepts_file.exists():
