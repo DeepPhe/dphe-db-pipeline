@@ -82,8 +82,8 @@ Ingests demographic and diagnosis source data and builds `omop.sqlite3`
 (`CALCULATED_PATIENT_DATA`, `CALCULATED_DX_DATA`, `CALCULATED_PT_ICD_CODES`).
 
 ```bash
-python src/omop_importer/run.py --config src/omop_importer/config.json
-python src/omop_importer/run.py --config src/omop_importer/config.json --source-type json
+python -m src.omop_importer.run --config src/omop_importer/config.json
+python -m src.omop_importer.run --config src/omop_importer/config.json --source-type json
 ```
 
 See `src/omop_importer/config.json` and the importer README for configuration details.

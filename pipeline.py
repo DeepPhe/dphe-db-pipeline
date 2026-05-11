@@ -57,11 +57,17 @@ logger = logging.getLogger(__name__)
 _BASE_DIR = Path(__file__).resolve().parent
 _DEFAULT_COMPRESSED_DB = _BASE_DIR / "deepphe" / "deepphe_sqlite_compressed"
 _DEFAULT_OMOP_DB = _BASE_DIR / "deepphe" / "omop.sqlite3"
-_DEFAULT_IMPORTER_CONFIG = _BASE_DIR / "src" / "importer" / "config.json"
+_DEFAULT_IMPORTER_CONFIG = _BASE_DIR / "src" / "omop_importer" / "config.json"
 
 
 def _run(script: Path, extra_args: list[str] | None = None) -> None:
     cmd = [sys.executable, str(script)] + (extra_args or [])
+    logger.info("Running: %s", " ".join(cmd))
+    subprocess.run(cmd, cwd=_BASE_DIR, check=True)
+
+
+def _run_module(module: str, extra_args: list[str] | None = None) -> None:
+    cmd = [sys.executable, "-m", module] + (extra_args or [])
     logger.info("Running: %s", " ".join(cmd))
     subprocess.run(cmd, cwd=_BASE_DIR, check=True)
 
@@ -99,7 +105,7 @@ def _run_stage1(config: Path, source_type: str | None) -> None:
     if source_type:
         args += ["--source-type", source_type]
 
-    _run(_BASE_DIR / "src" / "importer" / "run.py", args)
+    _run_module("src.omop_importer.run", args)
     logger.info("Stage 1 complete.")
 
 
