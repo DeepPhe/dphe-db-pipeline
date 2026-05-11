@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Full DeepPhe pipeline: raw NLP output → deepphe_sqlite_compressed → deepphe.sqlite3 → extracted concepts/summaries.
+Full DeepPhe pipeline: raw NLP output → deepphe_sqlite_compressed → omop.sqlite3 → extracted concepts/summaries.
 
 Stage 0 — Loader (DeepPheOutputLoader)
   Reads raw DeepPhe NLP output files (directory or zip archives) and loads them
@@ -8,11 +8,11 @@ Stage 0 — Loader (DeepPheOutputLoader)
 
 Stage 1 — OMAP importer (omap-data-importer)
   Reads source demographic/diagnosis data (CSV / MySQL / JSON) and builds
-  deepphe.sqlite3, which contains CALCULATED_PATIENT_DATA, CALCULATED_DX_DATA,
+  omop.sqlite3, which contains CALCULATED_PATIENT_DATA, CALCULATED_DX_DATA,
   and CALCULATED_PT_ICD_CODES.
 
 Stage 2 — Concept extractor (deeppheconceptextractor)
-  Reads deepphe_sqlite_compressed (Stage 0 output) and deepphe.sqlite3 (Stage 1
+  Reads deepphe_sqlite_compressed (Stage 0 output) and omop.sqlite3 (Stage 1
   output), then runs extraction → parse → import → patient summaries.
 
 Usage:
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 _BASE_DIR = Path(__file__).resolve().parent
 _DEFAULT_COMPRESSED_DB = _BASE_DIR / "deepphe" / "deepphe_sqlite_compressed"
-_DEFAULT_OMOP_DB = _BASE_DIR / "deepphe" / "deepphe.sqlite3"
+_DEFAULT_OMOP_DB = _BASE_DIR / "deepphe" / "omop.sqlite3"
 _DEFAULT_IMPORTER_CONFIG = _BASE_DIR / "src" / "importer" / "config.json"
 
 
@@ -92,7 +92,7 @@ def _run_stage0(
 
 def _run_stage1(config: Path, source_type: str | None) -> None:
     logger.info("=" * 60)
-    logger.info("STAGE 1 — OMAP importer: building deepphe.sqlite3")
+    logger.info("STAGE 1 — OMAP importer: building omop.sqlite3")
     logger.info("=" * 60)
 
     args = ["--config", str(config)]
@@ -141,7 +141,7 @@ def main() -> int:
     parser.add_argument(
         "--skip-stage1",
         action="store_true",
-        help="Skip Stage 1 (OMAP importer). Use when deepphe.sqlite3 already exists.",
+        help="Skip Stage 1 (OMAP importer). Use when omop.sqlite3 already exists.",
     )
     parser.add_argument(
         "--only-stage0",
@@ -215,7 +215,7 @@ def main() -> int:
         default=_DEFAULT_OMOP_DB,
         metavar="PATH",
         help=(
-            "Path to deepphe.sqlite3 — written by Stage 1, read by Stage 2 "
+            "Path to omop.sqlite3 — written by Stage 1, read by Stage 2 "
             f"(default: {_DEFAULT_OMOP_DB})."
         ),
     )

@@ -41,7 +41,7 @@ def print_env_instructions():
         "# Ingestion source: csv | mysql | json\n"
         "SOURCE_TYPE=csv\n\n"
         "# Always required — destination database\n"
-        "SQLITE_DB_PATH=output/databases/deepphe.sqlite3\n\n"
+        "SQLITE_DB_PATH=output/databases/omop.sqlite3\n\n"
         "# Required for SOURCE_TYPE=csv (or pass it at runtime)\n"
         "SOURCE_DIR=<your_source_directory>\n\n"
         "# Required for SOURCE_TYPE=json\n"

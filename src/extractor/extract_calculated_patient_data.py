@@ -19,7 +19,7 @@ from typing import Dict, Iterable, List, Set, Tuple
 def get_default_db_path() -> Path:
     """Return the default absolute path to the DeepPhe OMOP SQLite database."""
     repo_root = Path(__file__).resolve().parents[2]
-    return repo_root / "deepphe" / "deepphe.sqlite3"
+    return repo_root / "deepphe" / "omop.sqlite3"
 
 
 def fetch_patient_records(db_path: Path) -> List[Dict]:

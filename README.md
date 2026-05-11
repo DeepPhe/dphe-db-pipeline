@@ -13,7 +13,7 @@ tumor attributes, and per-patient summaries.
 | Stage | Script | Input | Output |
 |---|---|---|---|
 | 0 — Loader | `src/loader/` | Raw DeepPhe JSON output files (dir or zip) | `deepphe/deepphe_sqlite_compressed` |
-| 1 — Importer | `src/importer/` | Demographics/diagnosis data (CSV, MySQL, or JSON) | `deepphe/deepphe.sqlite3` |
+| 1 — Importer | `src/importer/` | Demographics/diagnosis data (CSV, MySQL, or JSON) | `deepphe/omop.sqlite3` |
 | 2 — Extractor | `src/extractor/` | Both databases above | CSVs + `patient_summaries.jsonl` in `extracted_cancer_data/` |
 
 ## Installation
@@ -78,7 +78,7 @@ python src/loader/load_to_sqlite.py deepphe_db --zipdir /path/to/zip/directory
 
 ### Stage 1 — Importer
 
-Ingests demographic and diagnosis source data and builds `deepphe.sqlite3`
+Ingests demographic and diagnosis source data and builds `omop.sqlite3`
 (`CALCULATED_PATIENT_DATA`, `CALCULATED_DX_DATA`, `CALCULATED_PT_ICD_CODES`).
 
 ```bash
@@ -96,7 +96,7 @@ Reads both databases and produces extracted CSVs and per-patient JSONL summaries
 python src/extractor/regenerate_data_pipeline.py
 python src/extractor/regenerate_data_pipeline.py \
   --database /path/to/deepphe_sqlite_compressed \
-  --omop-database /path/to/deepphe.sqlite3
+  --omop-database /path/to/omop.sqlite3
 ```
 
 ## Project Structure
@@ -106,7 +106,7 @@ dphe-db-pipeline/
 ├── pipeline.py                      # Top-level pipeline orchestrator (all 3 stages)
 ├── src/
 │   ├── loader/                      # Stage 0: load raw DeepPhe output → SQLite
-│   ├── importer/                    # Stage 1: ingest demographics → deepphe.sqlite3
+│   ├── importer/                    # Stage 1: ingest demographics → omop.sqlite3
 │   └── extractor/                   # Stage 2: extract concepts → CSVs + JSONL
 │       ├── extractors/              # Extract raw data from deepphe_sqlite_compressed
 │       ├── parsers/                 # Group extracted CSVs by concept type
@@ -115,7 +115,7 @@ dphe-db-pipeline/
 │       └── regenerate_data_pipeline.py  # Stage 2 orchestrator
 ├── deepphe/                         # Databases (gitignored)
 │   ├── deepphe_sqlite_compressed    # Built by Stage 0
-│   └── deepphe.sqlite3              # Built by Stage 1
+│   └── omop.sqlite3              # Built by Stage 1
 ├── extracted_cancer_data/           # Stage 2 output (gitignored)
 ├── tests/
 └── pyproject.toml

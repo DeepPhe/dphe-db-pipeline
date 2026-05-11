@@ -108,8 +108,8 @@ def main() -> int:
         type=Path,
         default=None,
         help=(
-            "Path to the deepphe.sqlite3 OMOP database (used for demographics). "
-            "Defaults to <repo>/deepphe/deepphe.sqlite3."
+            "Path to the omop.sqlite3 OMOP database (used for demographics). "
+            "Defaults to <repo>/deepphe/omop.sqlite3."
         ),
     )
     args = parser.parse_args()

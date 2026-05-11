@@ -16,7 +16,7 @@ from typing import Dict, List, Set, Tuple
 def get_default_db_path() -> Path:
     """Return the default path to the DeepPhe OMOP SQLite database."""
     repo_root = Path(__file__).resolve().parents[2]
-    return repo_root / "deepphe" / "deepphe.sqlite3"
+    return repo_root / "deepphe" / "omop.sqlite3"
 
 
 def get_patients_by_cancer(db_path: Path) -> Dict[str, List[Dict]]:
