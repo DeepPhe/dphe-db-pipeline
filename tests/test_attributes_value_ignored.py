@@ -21,7 +21,7 @@ def _load_module(relative_path: str, module_name: str):
 def test_parse_attributes_ignores_value_column(tmp_path):
     """Rows differing only by `value` should collapse into one grouped attribute."""
     parser_module = _load_module(
-        "src/scripts/parsers/parse_attributes_by_group.py",
+        "src/extractor/parsers/parse_attributes_by_group.py",
         "parse_attributes_by_group_for_test",
     )
 
@@ -80,7 +80,7 @@ def test_parse_attributes_ignores_value_column(tmp_path):
 def test_extractor_does_not_emit_value_column(tmp_path):
     """CancerDataExtractor attribute output should never include a `value` field."""
     extractor_module = _load_module(
-        "src/scripts/extractors/extract_cancers_data.py",
+        "src/extractor/extractors/extract_cancers_data.py",
         "extract_cancers_data_for_test",
     )
 
@@ -128,7 +128,7 @@ def test_extractor_does_not_emit_value_column(tmp_path):
 def test_importer_attributes_table_has_no_value_column(tmp_path):
     """Importer should create attributes_by_group table without a `value` column."""
     importer_module = _load_module(
-        "src/scripts/import_parsed_data.py",
+        "src/extractor/import_parsed_data.py",
         "import_parsed_data_for_test",
     )
 

@@ -120,7 +120,7 @@ def _run_stage2(
     if skip_clean:
         args.append("--skip-clean")
 
-    _run(_BASE_DIR / "src" / "scripts" / "regenerate_data_pipeline.py", args)
+    _run(_BASE_DIR / "src" / "extractor" / "regenerate_data_pipeline.py", args)
     logger.info("Stage 2 complete.")
 
 

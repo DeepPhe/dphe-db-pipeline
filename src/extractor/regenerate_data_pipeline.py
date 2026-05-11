@@ -76,11 +76,11 @@ def _iter_steps(
     db_args = ["--database", str(database)] if database else []
     omop_args = ["--database", str(omop_database)] if omop_database else []
 
-    yield base_dir / "src/scripts/extractors/extract_cancers_data.py", db_args
-    yield base_dir / "src/scripts/parse_all_by_group.py", []
-    yield base_dir / "src/scripts/import_parsed_data.py", db_args
-    yield base_dir / "src/scripts/generate_patient_summaries.py", db_args
-    yield base_dir / "src/scripts/import_patient_summaries.py", (
+    yield base_dir / "src/extractor/extractors/extract_cancers_data.py", db_args
+    yield base_dir / "src/extractor/parse_all_by_group.py", []
+    yield base_dir / "src/extractor/import_parsed_data.py", db_args
+    yield base_dir / "src/extractor/generate_patient_summaries.py", db_args
+    yield base_dir / "src/extractor/import_patient_summaries.py", (
         ["--db-path", str(database)] if database else []
     )
 

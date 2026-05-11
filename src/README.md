@@ -7,7 +7,7 @@ This directory contains the source code for DeepPheConceptExtractor, organized b
 ```
 src/
 ├── analysis/           # Data analysis and reporting scripts
-├── scripts/            # Main execution scripts (planned)
+├── extractor/            # Main execution scripts (planned)
 └── utils/              # Utility functions and helper scripts
 ```
 
@@ -39,7 +39,7 @@ python src/utils/explore_database.py
 python src/utils/split_csv_files.py
 ```
 
-### scripts/ (Planned)
+### extractor/ (Planned)
 Main execution scripts for data extraction, parsing, and querying.
 
 Scripts currently in root directory will be moved here:
@@ -55,7 +55,7 @@ Scripts currently in root directory will be moved here:
 
 1. **Determine category:**
    - **analysis/** - Data analysis, reporting, statistics
-   - **scripts/** - Main execution, data processing
+   - **extractor/** - Main execution, data processing
    - **utils/** - Helper functions, database tools
 
 2. **Follow naming conventions:**
@@ -103,7 +103,7 @@ Scripts currently in root directory will be moved here:
 - ✅ `tests/` - Created and populated
 
 **Planned:**
-- ⏳ `src/scripts/` - To be populated with root-level scripts
+- ⏳ `src/extractor/` - To be populated with root-level scripts
 - ⏳ `src/core/` - Shared library code (if needed)
 
 ## Running Scripts
@@ -131,7 +131,7 @@ python query_tumors.py --list
 
 ## Future Improvements
 
-1. Create `src/scripts/` and move all execution scripts
+1. Create `src/extractor/` and move all execution scripts
 2. Extract shared code into `src/core/` library modules
 3. Add proper logging configuration
 4. Create CLI entry points in `pyproject.toml`

@@ -1,6 +1,6 @@
-# DeepPhe Concept Extractor
+# dphe-db-pipeline
 
-Medical concept extraction from DeepPhe database.
+Full DeepPhe pipeline: raw NLP output → OMOP database → extracted concepts and patient summaries.
 
 ## Overview
 
@@ -48,24 +48,24 @@ uv sync --all-extras  # include dev dependencies
 
 ```bash
 # Uses default database paths (deepphe/deepphe_sqlite_compressed)
-python3 src/scripts/regenerate_data_pipeline.py
+python3 src/extractor/regenerate_data_pipeline.py
 
 # Explicit database paths
-python3 src/scripts/regenerate_data_pipeline.py \
+python3 src/extractor/regenerate_data_pipeline.py \
   --database /path/to/deepphe_sqlite_compressed \
   --omop-database /path/to/deepphe.sqlite3
 
 # Skip cleanup of previously generated CSVs
-python3 src/scripts/regenerate_data_pipeline.py --skip-clean
+python3 src/extractor/regenerate_data_pipeline.py --skip-clean
 ```
 
 The pipeline runs these steps in order:
 
-1. `src/scripts/extractors/extract_cancers_data.py` - extract cancer/concept/tumor/attribute CSVs
-2. `src/scripts/parse_all_by_group.py` - group extracted CSVs by DeepPhe group
-3. `src/scripts/import_parsed_data.py` - import grouped CSVs into SQLite
-4. `src/scripts/generate_patient_summaries.py` - build per-patient JSONL summaries
-5. `src/scripts/import_patient_summaries.py` - import JSONL into SQLite
+1. `src/extractor/extractors/extract_cancers_data.py` - extract cancer/concept/tumor/attribute CSVs
+2. `src/extractor/parse_all_by_group.py` - group extracted CSVs by DeepPhe group
+3. `src/extractor/import_parsed_data.py` - import grouped CSVs into SQLite
+4. `src/extractor/generate_patient_summaries.py` - build per-patient JSONL summaries
+5. `src/extractor/import_patient_summaries.py` - import JSONL into SQLite
 
 ### Step-by-step
 
@@ -73,20 +73,20 @@ Each script accepts a `--database` option. All default to the paths under `deepp
 
 ```bash
 # Extract cancer/concept/tumor/attribute data from deepphe_sqlite_compressed
-python3 src/scripts/extractors/extract_cancers_data.py --database /path/to/deepphe_sqlite_compressed
+python3 src/extractor/extractors/extract_cancers_data.py --database /path/to/deepphe_sqlite_compressed
 
 # Parse and group extracted CSVs (no database needed)
-python3 src/scripts/parse_all_by_group.py
+python3 src/extractor/parse_all_by_group.py
 
 # Import grouped CSVs back into SQLite
-python3 src/scripts/import_parsed_data.py --database /path/to/deepphe_sqlite_compressed
+python3 src/extractor/import_parsed_data.py --database /path/to/deepphe_sqlite_compressed
 
 # Extract OMOP demographics from deepphe.sqlite3
-python3 src/scripts/extract_calculated_dx_data.py --database /path/to/deepphe.sqlite3
-python3 src/scripts/extract_calculated_patient_data.py --database /path/to/deepphe.sqlite3
+python3 src/extractor/extract_calculated_dx_data.py --database /path/to/deepphe.sqlite3
+python3 src/extractor/extract_calculated_patient_data.py --database /path/to/deepphe.sqlite3
 
 # Import patient summaries
-python3 src/scripts/import_patient_summaries.py --db-path /path/to/deepphe_sqlite_compressed
+python3 src/extractor/import_patient_summaries.py --db-path /path/to/deepphe_sqlite_compressed
 ```
 
 ## Project Structure
@@ -94,7 +94,7 @@ python3 src/scripts/import_patient_summaries.py --db-path /path/to/deepphe_sqlit
 ```
 DeepPheConceptExtractor/
 ├── src/
-│   ├── scripts/
+│   ├── extractor/
 │   │   ├── extractors/              # Extract raw data from source databases
 │   │   │   └── extract_cancers_data.py
 │   │   ├── parsers/                 # Parse and group extracted CSVs

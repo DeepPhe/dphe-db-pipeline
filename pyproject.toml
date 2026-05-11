@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "deepphe-concept-extractor"
+name = "dphe-db-pipeline"
 version = "0.1.0"
-description = "Medical concept extraction from DeepPhe database"
+description = "Full DeepPhe pipeline: NLP output → OMOP database → extracted concepts"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
