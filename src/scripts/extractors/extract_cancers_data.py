@@ -664,10 +664,28 @@ def process_concept_data(db_path: str, output_dir: Path, concept_count: queue.Qu
 
 def main():
     """Main entry point - reads from deepphe_sqlite_compressed database with 2 parallel threads."""
-    # Configuration
-    base_dir = Path(__file__).parent.parent.parent
+    import argparse
+
+    base_dir = Path(__file__).parent.parent.parent.parent
+    default_db = base_dir / "deepphe" / "deepphe_sqlite_compressed"
+
+    parser = argparse.ArgumentParser(
+        description="Extract cancer and concept data from a DeepPhe SQLite database."
+    )
+    parser.add_argument(
+        "--database",
+        type=Path,
+        default=default_db,
+        help=f"Path to the deepphe_sqlite_compressed database (default: {default_db}).",
+    )
+    args = parser.parse_args()
+
+    db_path: Path = args.database.resolve()
+    if not db_path.exists():
+        logger.error("Database not found: %s", db_path)
+        raise SystemExit(1)
+
     output_dir = base_dir / 'extracted_cancer_data'
-    db_path = base_dir / "deepphe/deepphe_sqlite_compressed"
 
     logger.info("="*80)
     logger.info("CANCER AND CONCEPT DATA EXTRACTION - PARALLEL PROCESSING")

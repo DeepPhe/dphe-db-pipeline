@@ -4,7 +4,25 @@ Medical concept extraction from DeepPhe database.
 
 ## Overview
 
-This project extracts and processes medical concepts and cancer information from a DeepPhe SQLite database. It provides tools to query, extract, and export structured medical data.
+This project extracts and processes medical concepts and cancer information from DeepPhe SQLite
+databases. It queries the DeepPhe NLP output database, decompresses patient JSON records, parses
+cancer/concept/tumor/attribute data, and exports structured results to CSV and JSONL for further
+analysis or OMOP mapping.
+
+The source databases are produced externally by the
+[DeepPhe NLP pipeline](https://github.com/DeepPhe/DeepPhe-CR) and are not created by this project.
+
+## Source Databases
+
+Two SQLite databases are required as inputs:
+
+| Database | Default path | Contents |
+|---|---|---|
+| `deepphe_sqlite_compressed` | `deepphe/deepphe_sqlite_compressed` | Per-patient `_Cancers.json` and `_Concepts.json` blobs (zstd-compressed). Primary extraction source. |
+| `deepphe.sqlite3` | `deepphe/deepphe.sqlite3` | `CALCULATED_DX_DATA` and `CALCULATED_PATIENT_DATA` tables. Used for OMOP demographics (age, gender, race, ethnicity, cancer type). |
+
+Both files are gitignored and must be placed in the `deepphe/` directory (or supplied via
+`--database` / `--omop-database` flags).
 
 ## Installation
 
@@ -19,42 +37,56 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### Set up the project
 
 ```bash
-# Clone the repository
 cd DeepPheConceptExtractor
-
-# Create virtual environment and install dependencies
-uv sync
-
-# Install with dev dependencies
-uv sync --all-extras
+uv sync            # create virtualenv and install dependencies
+uv sync --all-extras  # include dev dependencies
 ```
 
 ## Usage
 
-After installation, the following command-line tools are available:
+### Full pipeline (one command)
 
 ```bash
-# Extract cancer information
-uv run extract-cancers
+# Uses default database paths (deepphe/deepphe_sqlite_compressed)
+python3 src/scripts/regenerate_data_pipeline.py
 
-# Extract concept information
-uv run extract-concepts
+# Explicit database paths
+python3 src/scripts/regenerate_data_pipeline.py \
+  --database /path/to/deepphe_sqlite_compressed \
+  --omop-database /path/to/deepphe.sqlite3
 
-# Explore database structure
-uv run explore-db
-
-# Create concepts table
-uv run create-concepts-table
+# Skip cleanup of previously generated CSVs
+python3 src/scripts/regenerate_data_pipeline.py --skip-clean
 ```
 
-### Direct script usage
+The pipeline runs these steps in order:
 
-You can also run scripts directly using uv:
+1. `src/scripts/extractors/extract_cancers_data.py` - extract cancer/concept/tumor/attribute CSVs
+2. `src/scripts/parse_all_by_group.py` - group extracted CSVs by DeepPhe group
+3. `src/scripts/import_parsed_data.py` - import grouped CSVs into SQLite
+4. `src/scripts/generate_patient_summaries.py` - build per-patient JSONL summaries
+5. `src/scripts/import_patient_summaries.py` - import JSONL into SQLite
+
+### Step-by-step
+
+Each script accepts a `--database` option. All default to the paths under `deepphe/`.
 
 ```bash
-# Run extraction scripts
-uv run python scripts/extract_cancers.py
-uv run python scripts/extract_concepts.py
+# Extract cancer/concept/tumor/attribute data from deepphe_sqlite_compressed
+python3 src/scripts/extractors/extract_cancers_data.py --database /path/to/deepphe_sqlite_compressed
+
+# Parse and group extracted CSVs (no database needed)
+python3 src/scripts/parse_all_by_group.py
+
+# Import grouped CSVs back into SQLite
+python3 src/scripts/import_parsed_data.py --database /path/to/deepphe_sqlite_compressed
+
+# Extract OMOP demographics from deepphe.sqlite3
+python3 src/scripts/extract_calculated_dx_data.py --database /path/to/deepphe.sqlite3
+python3 src/scripts/extract_calculated_patient_data.py --database /path/to/deepphe.sqlite3
+
+# Import patient summaries
+python3 src/scripts/import_patient_summaries.py --db-path /path/to/deepphe_sqlite_compressed
 ```
 
 ## Project Structure
@@ -62,20 +94,53 @@ uv run python scripts/extract_concepts.py
 ```
 DeepPheConceptExtractor/
 ├── src/
-│   └── deepphe_concept_extractor/  # Main package
-│       ├── core/                    # Core extraction logic
-│       ├── db/                      # Database interaction
-│       └── cli.py                   # Command-line interface
-├── scripts/                         # Thin CLI wrappers
+│   ├── scripts/
+│   │   ├── extractors/              # Extract raw data from source databases
+│   │   │   └── extract_cancers_data.py
+│   │   ├── parsers/                 # Parse and group extracted CSVs
+│   │   ├── queries/                 # Ad-hoc query scripts
+│   │   ├── patient_summaries/       # Patient summary generation
+│   │   ├── regenerate_data_pipeline.py  # Full pipeline orchestrator
+│   │   ├── parse_all_by_group.py
+│   │   ├── import_parsed_data.py
+│   │   ├── import_patient_summaries.py
+│   │   ├── extract_calculated_dx_data.py
+│   │   └── extract_calculated_patient_data.py
+│   ├── analysis/                    # Analysis and reporting scripts
+│   └── utils/                       # Utility helpers
+├── deepphe/                         # Source databases (gitignored)
+│   ├── deepphe_sqlite_compressed    # Primary DeepPhe NLP output
+│   └── deepphe.sqlite3              # OMOP demographics
+├── extracted_cancer_data/           # Pipeline output (gitignored)
 ├── tests/                           # Human-owned tests
 ├── .ai/
 │   ├── md/                          # AI-generated documentation
 │   ├── tests/                       # AI-generated tests
 │   └── checks/                      # AI-generated checks
-├── data/                            # Database files (gitignored)
-├── pyproject.toml                   # Project configuration
-└── README.md                        # This file
+├── pyproject.toml
+└── README.md
 ```
+
+## Output
+
+All output is written to `extracted_cancer_data/` (gitignored):
+
+| File/Directory | Contents |
+|---|---|
+| `extracted_cancer_data/extracted_cancers/` | Per-shard cancer CSV files |
+| `extracted_cancer_data/extracted_tumors/` | Per-shard tumor CSV files |
+| `extracted_cancer_data/extracted_attributes/` | Per-shard attribute CSV files |
+| `extracted_cancer_data/extracted_concepts/` | Per-shard concept CSV files |
+| `extracted_cancer_data/cancers_by_group.csv` | Cancers grouped by DeepPhe group |
+| `extracted_cancer_data/tumors_by_group.csv` | Tumors grouped by DeepPhe group |
+| `extracted_cancer_data/attributes_by_group.csv` | Attributes grouped by name |
+| `extracted_cancer_data/concepts_by_group.csv` | Concepts grouped by DeepPhe group |
+| `extracted_cancer_data/omop_age_at_dx.csv` | Patient counts by age at diagnosis |
+| `extracted_cancer_data/omop_cancers.csv` | Patient counts by cancer type |
+| `extracted_cancer_data/omop_gender.csv` | Patient counts by gender |
+| `extracted_cancer_data/omop_race.csv` | Patient counts by race |
+| `extracted_cancer_data/omop_ethnicity.csv` | Patient counts by ethnicity |
+| `extracted_cancer_data/patient_summaries.jsonl` | Per-patient structured summaries |
 
 ## Development
 
@@ -98,21 +163,16 @@ uv run ruff check src/
 uv run ruff format src/
 ```
 
-## Database
-
-The project expects a SQLite database file named `deepphe_100` in the root directory containing medical concept data from DeepPhe.
-
-## Output
-
-Extracted data is saved to:
-- `extracted_cancers/` - Cancer information JSON files
-- `extracted_concepts/` - Concept information JSON files
-
 ## Requirements
 
 - Python 3.11+
-- SQLite database with DeepPhe data
-- zstandard library for compressed content
+- DeepPhe SQLite databases (produced by the DeepPhe NLP pipeline)
+- `zstandard` library for zstd-compressed database content
+
+## Security Note
+
+The source databases and all extracted output may contain protected health information (PHI).
+They are gitignored and must never be committed to version control.
 
 ## License
 

@@ -546,42 +546,49 @@ class DatabaseImporter:
             'tumors': data_dir / 'tumors_by_group.csv'
         }
 
-        # Verify all CSV files exist
-        missing_files = []
-        for name, path in csv_files.items():
-            if not path.exists():
-                missing_files.append(str(path))
+        # Warn about missing CSVs but do not abort -- an empty extraction is valid.
+        missing_names = [name for name, path in csv_files.items() if not path.exists()]
+        present_files = {name: path for name, path in csv_files.items() if path.exists()}
 
-        if missing_files:
-            logger.error("The following CSV files are missing:")
-            for path in missing_files:
-                logger.error(f"  - {path}")
-            return False
+        if missing_names:
+            logger.warning(
+                "The following CSV files are absent and will be skipped: %s",
+                ", ".join(f"{n}_by_group.csv" for n in missing_names),
+            )
 
-        logger.info(f"Found all {len(csv_files)} required CSV files")
+        if not present_files:
+            logger.warning("No CSV files found in %s -- nothing to import.", data_dir)
+            return True  # Not an error; extraction simply produced no rows.
+
+        logger.info("Found %d/%d CSV file(s) to import", len(present_files), len(csv_files))
         logger.info("")
 
         # Drop all existing tables first
         if not self.drop_all_tables():
             return False
 
-        # Import each CSV
+        # Import only the CSVs that exist
         results = {}
-        logger.info("Importing concepts_by_group.csv...")
-        results['concepts'] = self.create_and_import_concepts(csv_files['concepts'])
-        logger.info("")
 
-        logger.info("Importing attributes_by_group.csv...")
-        results['attributes'] = self.create_and_import_attributes(csv_files['attributes'])
-        logger.info("")
+        if 'concepts' in present_files:
+            logger.info("Importing concepts_by_group.csv...")
+            results['concepts'] = self.create_and_import_concepts(csv_files['concepts'])
+            logger.info("")
 
-        logger.info("Importing cancers_by_group.csv...")
-        results['cancers'] = self.create_and_import_cancers(csv_files['cancers'])
-        logger.info("")
+        if 'attributes' in present_files:
+            logger.info("Importing attributes_by_group.csv...")
+            results['attributes'] = self.create_and_import_attributes(csv_files['attributes'])
+            logger.info("")
 
-        logger.info("Importing tumors_by_group.csv...")
-        results['tumors'] = self.create_and_import_tumors(csv_files['tumors'])
-        logger.info("")
+        if 'cancers' in present_files:
+            logger.info("Importing cancers_by_group.csv...")
+            results['cancers'] = self.create_and_import_cancers(csv_files['cancers'])
+            logger.info("")
+
+        if 'tumors' in present_files:
+            logger.info("Importing tumors_by_group.csv...")
+            results['tumors'] = self.create_and_import_tumors(csv_files['tumors'])
+            logger.info("")
 
         # Create patient ID mapping table
         logger.info("Creating patient_id_mapping table...")
@@ -592,31 +599,56 @@ class DatabaseImporter:
         logger.info("="*80)
         logger.info("IMPORT SUMMARY")
         logger.info("="*80)
+        skipped = len(missing_names)
         successful = sum(1 for v in results.values() if v)
-        logger.info(f"Successfully imported: {successful}/{len(results)} tables")
+        logger.info(f"Successfully imported: {successful}/{len(present_files)} tables (skipped {skipped})")
         for name, success in results.items():
-            status = "✓" if success else "✗"
-            logger.info(f"  {status} {name}_by_group")
+            status = "ok" if success else "FAILED"
+            logger.info(f"  [{status}] {name}_by_group")
+        for name in missing_names:
+            logger.info(f"  [skip] {name}_by_group (no CSV)")
 
-        mapping_status = "✓" if mapping_success else "✗"
-        logger.info(f"  {mapping_status} patient_id_mapping ({len(self.patient_id_map)} patients)")
+        mapping_status = "ok" if mapping_success else "FAILED"
+        logger.info(f"  [{mapping_status}] patient_id_mapping ({len(self.patient_id_map)} patients)")
         logger.info("="*80)
 
-        return all(results.values()) and mapping_success
+        return (not results or all(results.values())) and mapping_success
 
 
 def main():
     """Main entry point."""
+    import argparse
+
     base_dir = Path(__file__).parent.parent.parent
-    data_dir = base_dir / "extracted_cancer_data"
-    db_path = base_dir / "deepphe" / "deepphe_sqlite_compressed"
+    default_db = base_dir / "deepphe" / "deepphe_sqlite_compressed"
+    default_data = base_dir / "extracted_cancer_data"
+
+    parser = argparse.ArgumentParser(
+        description="Import parsed CSV data into the DeepPhe SQLite database."
+    )
+    parser.add_argument(
+        "--database",
+        type=Path,
+        default=default_db,
+        help=f"Path to the target SQLite database (default: {default_db}).",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=default_data,
+        help=f"Directory containing extracted CSV files (default: {default_data}).",
+    )
+    args = parser.parse_args()
+
+    data_dir: Path = args.data_dir.resolve()
+    db_path: Path = args.database.resolve()
 
     if not data_dir.exists():
-        logger.error(f"Data directory not found: {data_dir}")
+        logger.error("Data directory not found: %s", data_dir)
         return False
 
     if not db_path.exists():
-        logger.error(f"Database not found: {db_path}")
+        logger.error("Database not found: %s", db_path)
         return False
 
     importer = DatabaseImporter(str(db_path))

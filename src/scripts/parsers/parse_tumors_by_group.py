@@ -170,7 +170,7 @@ def print_statistics(tumors_by_group: Dict[Tuple[str, bool, bool, bool], Set[str
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).parent.parent.parent
+    base_dir = Path(__file__).parent.parent.parent.parent
     tumors_dir = base_dir / "extracted_cancer_data" / "extracted_tumors"
     output_file = base_dir / "extracted_cancer_data" / "tumors_by_group.csv"
 

@@ -60,14 +60,14 @@ def load_and_run_script(script_name: str, script_path: Path) -> None:
 
 def main():
     """Main entry point - execute all parse scripts in parallel threads."""
-    base_dir = Path(__file__).parent.parent.parent
+    parsers_dir = Path(__file__).parent / "parsers"
 
     # Define scripts to run
     scripts = [
-        ("parse_concepts_by_group", base_dir / "parse_concepts_by_group.py"),
-        ("parse_attributes_by_group", base_dir / "parse_attributes_by_group.py"),
-        ("parse_cancers_by_group", base_dir / "parse_cancers_by_group.py"),
-        ("parse_tumors_by_group", base_dir / "parse_tumors_by_group.py"),
+        ("parse_concepts_by_group", parsers_dir / "parse_concepts_by_group.py"),
+        ("parse_attributes_by_group", parsers_dir / "parse_attributes_by_group.py"),
+        ("parse_cancers_by_group", parsers_dir / "parse_cancers_by_group.py"),
+        ("parse_tumors_by_group", parsers_dir / "parse_tumors_by_group.py"),
     ]
 
     # Verify all scripts exist
@@ -85,7 +85,7 @@ def main():
     logger.info("="*80)
     logger.info("STARTING PARALLEL EXECUTION OF ALL PARSE SCRIPTS")
     logger.info("="*80)
-    logger.info(f"Base directory: {base_dir}")
+    logger.info(f"Parsers directory: {parsers_dir}")
     logger.info(f"Scripts to execute: {len(scripts)}")
     for script_name, _ in scripts:
         logger.info(f"  - {script_name}")
