@@ -13,7 +13,7 @@ tumor attributes, and per-patient summaries.
 | Stage | Script | Input | Output |
 |---|---|---|---|
 | 0 — Loader | `src/loader/` | Raw DeepPhe JSON output files (dir or zip) | `deepphe/deepphe_sqlite_compressed` |
-| 1 — Importer | `src/importer/` | Demographics/diagnosis data (CSV, MySQL, or JSON) | `deepphe/omop.sqlite3` |
+| 1 — Importer | `src/omop_importer/` | Demographics/diagnosis data (CSV, MySQL, or JSON) | `deepphe/omop.sqlite3` |
 | 2 — Extractor | `src/extractor/` | Both databases above | CSVs + `patient_summaries.jsonl` in `extracted_cancer_data/` |
 
 ## Installation
@@ -35,17 +35,17 @@ uv sync --all-extras     # include dev + mysql extras
 # Input: directory of raw DeepPhe output + CSV demographics
 python pipeline.py \
   --input-dir /path/to/deepphe/output \
-  --config src/importer/config.json
+  --config src/omop_importer/config.json
 
 # Input: zip archive of DeepPhe output
 python pipeline.py \
   --input-zip /path/to/JSON_000000001.json.zip \
-  --config src/importer/config.json
+  --config src/omop_importer/config.json
 
 # Input: directory tree of zip archives
 python pipeline.py \
   --input-zipdir /path/to/zips/ \
-  --config src/importer/config.json
+  --config src/omop_importer/config.json
 ```
 
 ### Partial runs
@@ -56,10 +56,10 @@ python pipeline.py --input-dir /path/to/deepphe/output --only-stage0
 
 # Stages 0 + 1 only
 python pipeline.py --input-dir /path/to/deepphe/output \
-  --config src/importer/config.json --only-stage1
+  --config src/omop_importer/config.json --only-stage1
 
 # Skip Stage 0 (deepphe_sqlite_compressed already built)
-python pipeline.py --skip-stage0 --config src/importer/config.json
+python pipeline.py --skip-stage0 --config src/omop_importer/config.json
 
 # Stage 2 only (both databases already exist)
 python pipeline.py --skip-stage0 --skip-stage1
@@ -82,11 +82,11 @@ Ingests demographic and diagnosis source data and builds `omop.sqlite3`
 (`CALCULATED_PATIENT_DATA`, `CALCULATED_DX_DATA`, `CALCULATED_PT_ICD_CODES`).
 
 ```bash
-python src/importer/run.py --config src/importer/config.json
-python src/importer/run.py --config src/importer/config.json --source-type json
+python src/omop_importer/run.py --config src/omop_importer/config.json
+python src/omop_importer/run.py --config src/omop_importer/config.json --source-type json
 ```
 
-See `src/importer/config.json` and the importer README for configuration details.
+See `src/omop_importer/config.json` and the importer README for configuration details.
 
 ### Stage 2 — Extractor
 

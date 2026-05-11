@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from src.importer.source.json_demographics_processor import run_json_import
+from src.omop_importer.source.json_demographics_processor import run_json_import
 
 
 class JsonDemographicsProcessorTests(unittest.TestCase):

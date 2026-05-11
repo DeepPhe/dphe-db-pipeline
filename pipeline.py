@@ -18,18 +18,18 @@ Stage 2 — Concept extractor (deeppheconceptextractor)
 Usage:
     # Full run (all three stages)
     python pipeline.py --input-dir /path/to/deepphe/output \\
-                       --config src/importer/config.json
+                       --config src/omop_importer/config.json
 
     # Stage 0 only (load raw files into SQLite)
     python pipeline.py --input-dir /path/to/deepphe/output --only-stage0
 
     # Stage 0 + Stage 1 only
     python pipeline.py --input-dir /path/to/deepphe/output \\
-                       --config src/importer/config.json \\
+                       --config src/omop_importer/config.json \\
                        --only-stage1
 
     # Skip Stage 0 (deepphe_sqlite_compressed already built)
-    python pipeline.py --skip-stage0 --config src/importer/config.json
+    python pipeline.py --skip-stage0 --config src/omop_importer/config.json
 
     # Stage 2 only (both databases already exist)
     python pipeline.py --skip-stage0 --skip-stage1
