@@ -99,6 +99,8 @@ extracted_concepts/
 *.zip
 *.tar
 *.tar.gz
+# Test fixtures that must be committed despite the zip rule above
+!src/loader/test/deepphe_100.zip
 *.bz2
 
 # Logs
