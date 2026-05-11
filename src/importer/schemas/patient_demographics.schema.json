@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/patient_demographics.schema.json",
+  "title": "Patient demographics payload",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["patients"],
+  "properties": {
+    "patients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["PatientID"],
+        "properties": {
+          "PatientID": { "type": "string", "minLength": 1 },
+          "PatientName": { "type": ["string", "null"] },
+          "Race": { "type": ["string", "null"] },
+          "Gender": { "type": ["string", "null"] },
+          "Ethnicity": { "type": ["string", "null"] },
+          "DateOfBirth": { "type": ["string", "null"] },
+          "CancerType": { "type": ["string", "null"] },
+          "AgeAtDiagnosis": { "type": ["number", "string", "null"] },
+          "AgeOfFirstEncounter": { "type": ["string", "null"] },
+          "AgeOfLastEncounter": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
+
