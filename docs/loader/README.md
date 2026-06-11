@@ -114,7 +114,9 @@ uv run python -m dphe_db_pipeline.loader.query_sqlite prefix ./mydb "PATIENT_ID_
 To extract the first 100 patients into a smaller SQLite database:
 
 ```bash
-uv run python -m dphe_db_pipeline.loader.extract_100_patients deepphe/deepphe_sqlite_compressed deepphe_100
+uv run python -m dphe_db_pipeline.loader.extract_100_patients \
+  output/databases/individual/deepphe.sqlite3 \
+  output/databases/individual/deepphe_100.sqlite3
 ```
 
 See [EXTRACT_100_PATIENTS.md](EXTRACT_100_PATIENTS.md) for full details.
