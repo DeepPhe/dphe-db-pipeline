@@ -14,14 +14,14 @@ This project supports three ingestion modes controlled by `SOURCE_TYPE`.
 
 ### When to use it
 
-Use this when you have a directory of source CSV files that correspond to expected OMAP source table names.
+Use this when you have a directory of source CSV files that correspond to expected OMOP source table names.
 
 ### Required settings
 
 ```dotenv
 SOURCE_TYPE=csv
 SOURCE_DIR=/path/to/csvs
-SQLITE_DB_PATH=output/databases/deepphe.sqlite3
+SQLITE_DB_PATH=output/databases/individual/omop.sqlite3
 ```
 
 ### What happens
@@ -49,12 +49,12 @@ Use this when source data already exists in MySQL and you want to read it withou
 
 ```dotenv
 SOURCE_TYPE=mysql
-SQLITE_DB_PATH=output/databases/deepphe.sqlite3
+SQLITE_DB_PATH=output/databases/individual/omop.sqlite3
 MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_USER=youruser
 MYSQL_PASSWORD=yourpassword
-MYSQL_DATABASE=omap
+MYSQL_DATABASE=omop
 ```
 
 ### What happens
@@ -69,6 +69,7 @@ MYSQL_DATABASE=omap
 
 - MySQL is read-only
 - The MySQL user only needs `SELECT` privileges
+- `MYSQL_DATABASE=omop` is shown as a legacy example database name; the importer writes to the OMOP SQLite DB configured by `SQLITE_DB_PATH`.
 
 ## `json`
 
@@ -81,8 +82,11 @@ Use this when you have a patient demographics JSON file and you only need patien
 ```dotenv
 SOURCE_TYPE=json
 JSON_SOURCE_PATH=/path/to/patient_demographics.json
-SQLITE_DB_PATH=output/databases/deepphe.sqlite3
+SQLITE_DB_PATH=output/databases/individual/omop.sqlite3
 ```
+
+The bundled example JSON lives at
+`src/dphe_db_pipeline/resources/example/omop_data/patient_demographics.json`.
 
 ### What happens
 
@@ -132,4 +136,3 @@ SQLITE_DB_PATH=output/databases/deepphe.sqlite3
 ### Important limitation
 
 JSON mode is **not** full parity with `csv`/`mysql` mode. It does not build the same source-table-based derived outputs.
-

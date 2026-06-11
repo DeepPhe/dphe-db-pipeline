@@ -1,155 +1,120 @@
 # dphe-db-pipeline
 
-Full DeepPhe pipeline: raw NLP output → OMOP database → extracted concepts and patient summaries.
+DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and extracting cancer concepts and patient summaries.
 
-## Overview
+## Requirements
 
-This project turns raw [DeepPhe NLP](https://github.com/DeepPhe/DeepPhe-CR) output files and
-demographic/diagnosis source data into a structured SQLite database of extracted cancer concepts,
-tumor attributes, and per-patient summaries.
+- Python >=3.13
+- [uv](https://github.com/astral-sh/uv)
+
+```bash
+uv sync
+```
+
+Use `uv sync --all-extras` when you need development tools or MySQL ingestion support.
+
+## Quickstart
+
+Run the bundled example data:
+
+```bash
+uv run dphe-pipeline
+```
+
+This uses:
+
+- DeepPhe example output: `src/dphe_db_pipeline/resources/example/dphe_output`
+- OMOP demographics JSON: `src/dphe_db_pipeline/resources/example/omop_data/patient_demographics.json`
+- OMOP importer config: `src/dphe_db_pipeline/omop_importer/omop-config.js`
+
+Default outputs:
+
+- DeepPhe SQLite DB: `output/databases/individual/deepphe.sqlite3`
+- OMOP SQLite DB: `output/databases/individual/omop.sqlite3`
+- Extraction output: `output/extraction/data/`
 
 ## Pipeline Stages
 
-| Stage | Script | Input | Output |
-|---|---|---|---|
-| 0 — Loader | `src/loader/` | Raw DeepPhe JSON output files (dir or zip) | `deepphe/deepphe_sqlite_compressed` |
-| 1 — Importer | `src/omop_importer/` | Demographics/diagnosis data (CSV, MySQL, or JSON) | `deepphe/omop.sqlite3` |
-| 2 — Extractor | `src/extractor/` | Both databases above | CSVs + `patient_summaries.jsonl` in `extracted_cancer_data/` |
+| Stage | Purpose | Default output |
+|---|---|---|
+| Stage 1 - Loader | Load raw DeepPhe JSON files, zip files, or zip directories into SQLite. | `output/databases/individual/deepphe.sqlite3` |
+| Stage 2 - OMOP Importer | Import demographics/diagnosis data from JSON, CSV, or MySQL into OMOP-derived tables. | `output/databases/individual/omop.sqlite3` |
+| Stage 3 - Extractor | Build grouped concept CSVs and patient summaries from the Stage 1 and Stage 2 databases. | `output/extraction/data/` |
 
-## Installation
+## Common Commands
 
-This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh   # if uv is not installed
-cd dphe-db-pipeline
-uv sync                  # install dependencies
-uv sync --all-extras     # include dev + mysql extras
-```
-
-## Usage
-
-### Full pipeline (recommended)
+Run the full pipeline against a DeepPhe output directory:
 
 ```bash
-# Input: directory of raw DeepPhe output + CSV demographics
-python pipeline.py \
+uv run dphe-pipeline \
   --input-dir /path/to/deepphe/output \
-  --config src/omop_importer/config.json
-
-# Input: zip archive of DeepPhe output
-python pipeline.py \
-  --input-zip /path/to/JSON_000000001.json.zip \
-  --config src/omop_importer/config.json
-
-# Input: directory tree of zip archives
-python pipeline.py \
-  --input-zipdir /path/to/zips/ \
-  --config src/omop_importer/config.json
+  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
 ```
 
-### Partial runs
+Run against one zip archive:
 
 ```bash
-# Stage 0 only (build deepphe_sqlite_compressed)
-python pipeline.py --input-dir /path/to/deepphe/output --only-stage0
-
-# Stages 0 + 1 only
-python pipeline.py --input-dir /path/to/deepphe/output \
-  --config src/omop_importer/config.json --only-stage1
-
-# Skip Stage 0 (deepphe_sqlite_compressed already built)
-python pipeline.py --skip-stage0 --config src/omop_importer/config.json
-
-# Stage 2 only (both databases already exist)
-python pipeline.py --skip-stage0 --skip-stage1
+uv run dphe-pipeline \
+  --input-zip /path/to/deepphe-output.zip \
+  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
 ```
 
-### Stage 0 — Loader
-
-Loads raw DeepPhe JSON output files into `deepphe_sqlite_compressed` (zstd-compressed blobs keyed
-by filename).
+Run against a directory tree of zip archives:
 
 ```bash
-python src/loader/load_to_sqlite.py /path/to/deepphe/output deepphe/deepphe_sqlite_compressed
-python src/loader/load_to_sqlite.py deepphe_db --zip /path/to/JSON_000000001.json.zip
-python src/loader/load_to_sqlite.py deepphe_db --zipdir /path/to/zip/directory
+uv run dphe-pipeline \
+  --input-zipdir /path/to/zips \
+  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
 ```
 
-### Stage 1 — Importer
-
-Ingests demographic and diagnosis source data and builds `omop.sqlite3`
-(`CALCULATED_PATIENT_DATA`, `CALCULATED_DX_DATA`, `CALCULATED_PT_ICD_CODES`).
+Run only the extractor when both databases already exist:
 
 ```bash
-python -m src.omop_importer.run --config src/omop_importer/config.json
-python -m src.omop_importer.run --config src/omop_importer/config.json --source-type json
+uv run dphe-pipeline --skip-loader --skip-importer
 ```
 
-See `src/omop_importer/config.json` and the importer README for configuration details.
-
-### Stage 2 — Extractor
-
-Reads both databases and produces extracted CSVs and per-patient JSONL summaries.
+Show all CLI options:
 
 ```bash
-python src/extractor/regenerate_data_pipeline.py
-python src/extractor/regenerate_data_pipeline.py \
-  --database /path/to/deepphe_sqlite_compressed \
-  --omop-database /path/to/omop.sqlite3
+uv run dphe-pipeline --help
 ```
 
-## Project Structure
+## OMOP Source Configuration
 
+Stage 2 supports three source modes:
+
+- `json`: patient demographics JSON, also used by the bundled example.
+- `csv`: source tables from a CSV directory.
+- `mysql`: read-only source tables copied from MySQL into SQLite.
+
+Use `--demographics /path/to/patient_demographics.json` for JSON mode, or set source variables in `.env`/environment for CSV and MySQL. See `docs/importer/` for the detailed importer runbook and configuration reference.
+
+## Project Layout
+
+```text
+src/dphe_db_pipeline/
+├── pipeline.py        # Main CLI orchestration
+├── loader/            # Stage 1
+├── omop_importer/     # Stage 2
+├── extractor/         # Stage 3
+├── resources/example/ # Bundled reproducible example data
+└── utils/
 ```
-dphe-db-pipeline/
-├── pipeline.py                      # Top-level pipeline orchestrator (all 3 stages)
-├── src/
-│   ├── loader/                      # Stage 0: load raw DeepPhe output → SQLite
-│   ├── importer/                    # Stage 1: ingest demographics → omop.sqlite3
-│   └── extractor/                   # Stage 2: extract concepts → CSVs + JSONL
-│       ├── extractors/              # Extract raw data from deepphe_sqlite_compressed
-│       ├── parsers/                 # Group extracted CSVs by concept type
-│       ├── patient_summaries/       # Per-patient summary generation
-│       ├── queries/                 # Ad-hoc query scripts
-│       └── regenerate_data_pipeline.py  # Stage 2 orchestrator
-├── deepphe/                         # Databases (gitignored)
-│   ├── deepphe_sqlite_compressed    # Built by Stage 0
-│   └── omop.sqlite3              # Built by Stage 1
-├── extracted_cancer_data/           # Stage 2 output (gitignored)
-├── tests/
-└── pyproject.toml
-```
 
-## Output
-
-All output is written to `extracted_cancer_data/` (gitignored):
-
-| File/Directory | Contents |
-|---|---|
-| `extracted_cancers/` | Per-shard cancer CSV files |
-| `extracted_tumors/` | Per-shard tumor CSV files |
-| `extracted_attributes/` | Per-shard attribute CSV files |
-| `extracted_concepts/` | Per-shard concept CSV files |
-| `cancers_by_group.csv` | Cancers grouped by DeepPhe class |
-| `tumors_by_group.csv` | Tumors grouped by DeepPhe class |
-| `attributes_by_group.csv` | Attributes grouped by name |
-| `concepts_by_group.csv` | Concepts grouped by DeepPhe class |
-| `patient_summaries.jsonl` | Per-patient structured summaries |
+Tests live in `tests/`. Generated databases and extracted files live under `output/` and are gitignored.
 
 ## Development
 
 ```bash
-uv run pytest          # run tests
-uv run mypy src/       # type checking
-uv run ruff check src/ # linting
+uv run pytest
+uv run ruff check src/dphe_db_pipeline tests
+uv run mypy src/dphe_db_pipeline
 ```
 
-## Security Note
+## Security
 
-All databases and extracted output may contain protected health information (PHI).
-They are gitignored and must never be committed to version control.
+Databases and extracted outputs may contain protected health information (PHI). They are gitignored and must not be committed.
 
 ## License
 
-[Add license information]
+Not specified yet.

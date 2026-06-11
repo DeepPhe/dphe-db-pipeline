@@ -1,6 +1,6 @@
 # Architecture
 
-This project imports, derives, and exports OMAP / DeePhe-style cohort data.
+This project imports, derives, and exports OMOP / DeepPhe-style cohort data.
 
 ## Core invariants
 
@@ -107,8 +107,8 @@ Primary downstream tables used by exports and reports:
 ## Important limitations
 
 1. JSON mode is not a full substitute for source-table ingestion.
-2. `config.json` mostly describes the CSV/MySQL source-table pipeline.
-3. `omap` and `lookup` in config are logical group names, not separate destination databases.
+2. `omop-config.js` mostly describes the CSV/MySQL source-table pipeline.
+3. `omop` and `lookup` in config are legacy logical group names, not separate destination databases.
 4. Some legacy helper names still reflect an earlier MySQL-centric implementation, but writes now target SQLite.
 
 ## Code map
@@ -116,9 +116,8 @@ Primary downstream tables used by exports and reports:
 - `run.py` — orchestration and mode branching
 - `source/config_processor.py` — config-driven table/column/index logic
 - `source/json_demographics_processor.py` — JSON ingestion and normalization
-- `db/omap/lookup_table_ops.py` — lookup table creation
-- `db/omap/translate_ops.py` — concept translation logic
-- `db/omap/icd_ops.py` — ICD-derived table logic
+- `db/omop/lookup_table_ops.py` — lookup table creation; `omop` is a legacy internal package name
+- `db/omop/translate_ops.py` — concept translation logic
+- `db/omop/icd_ops.py` — ICD-derived table logic
 - `export_tables.py` — export to delimited files
 - `reports/` — analysis and plotting scripts
-

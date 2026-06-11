@@ -4,10 +4,10 @@ A Python toolkit to load files from directories or zip archives into a SQLite da
 
 ## Installation
 
-1. Install the required dependencies:
+1. Install the project dependencies:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Usage
@@ -16,17 +16,17 @@ pip install -r requirements.txt
 
 **Load all files from a directory recursively:**
 ```bash
-python load_to_sqlite.py /path/to/input/files /path/to/database
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite /path/to/input/files /path/to/database
 ```
 
 **Load from a zip file:**
 ```bash
-python load_to_sqlite.py /path/to/database --zip archive.zip
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite /path/to/database --zip archive.zip
 ```
 
 **Load from a directory of zip files (recursive):**
 ```bash
-python load_to_sqlite.py /path/to/database --zipdir /path/to/zips
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite /path/to/database --zipdir /path/to/zips
 ```
 
 ### Options
@@ -41,17 +41,17 @@ python load_to_sqlite.py /path/to/database --zipdir /path/to/zips
 
 **Load files recursively (default):**
 ```bash
-python load_to_sqlite.py ./mydb ./data
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite ./data ./mydb
 ```
 
 **Load a single zip:**
 ```bash
-python load_to_sqlite.py ./mydb --zip archive.zip
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite ./mydb --zip archive.zip
 ```
 
 **Load all zips under a directory tree:**
 ```bash
-python load_to_sqlite.py ./mydb --zipdir /path/to/zips
+uv run python -m dphe_db_pipeline.loader.load_to_sqlite ./mydb --zipdir /path/to/zips
 ```
 
 ## How It Works
@@ -62,7 +62,7 @@ python load_to_sqlite.py ./mydb --zipdir /path/to/zips
   - **Value** (`content`): Complete file content, optionally compressed (zstd or lz4)
   - **Encoding**: Tracks whether content is `raw`, `zstd`, or `lz4`
 - Files are stored in a SQLite database at the specified path
-- Eight worker processes are used when loading from zip directories for maximum throughput
+- Twelve worker processes are used by default when loading from zip directories
 - A lock prevents concurrent writes so no data is lost
 
 ## Database Schema
@@ -79,34 +79,34 @@ Writing the same key twice simply overwrites the existing row (SQLite `INSERT OR
 
 ## Querying the Database
 
-Use `query_sqlite.py` to verify and retrieve data.
+Use `dphe_db_pipeline.loader.query_sqlite` to verify and retrieve data.
 
 ### Count total files
 ```bash
-python query_sqlite.py count ./mydb
+uv run python -m dphe_db_pipeline.loader.query_sqlite count ./mydb
 ```
 
 ### List files
 ```bash
 # First 10 (default)
-python query_sqlite.py list ./mydb
+uv run python -m dphe_db_pipeline.loader.query_sqlite list ./mydb
 
 # First 50
-python query_sqlite.py list ./mydb --limit 50
+uv run python -m dphe_db_pipeline.loader.query_sqlite list ./mydb --limit 50
 ```
 
 ### Retrieve a specific file
 ```bash
 # Display content preview
-python query_sqlite.py get ./mydb "path/to/file.json"
+uv run python -m dphe_db_pipeline.loader.query_sqlite get ./mydb "path/to/file.json"
 
 # Extract to disk
-python query_sqlite.py get ./mydb "path/to/file.json" -o output.json
+uv run python -m dphe_db_pipeline.loader.query_sqlite get ./mydb "path/to/file.json" -o output.json
 ```
 
 ### Query by prefix
 ```bash
-python query_sqlite.py prefix ./mydb "PATIENT_ID_"
+uv run python -m dphe_db_pipeline.loader.query_sqlite prefix ./mydb "PATIENT_ID_"
 ```
 
 ## Extract a Sample Database
@@ -114,7 +114,7 @@ python query_sqlite.py prefix ./mydb "PATIENT_ID_"
 To extract the first 100 patients into a smaller SQLite database:
 
 ```bash
-python extract_100_patients.py deepphe/deepphe_sqlite_compressed deepphe_100
+uv run python -m dphe_db_pipeline.loader.extract_100_patients deepphe/deepphe_sqlite_compressed deepphe_100
 ```
 
 See [EXTRACT_100_PATIENTS.md](EXTRACT_100_PATIENTS.md) for full details.

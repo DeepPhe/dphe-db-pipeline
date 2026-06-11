@@ -7,7 +7,7 @@ import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
 
-from src.omop_importer import run
+from dphe_db_pipeline.omop_importer import run
 
 
 @contextmanager
@@ -21,6 +21,16 @@ def temporary_cwd(path: str):
 
 
 class RunConfigTests(unittest.TestCase):
+    def test_load_tasks_config_supports_export_default_js(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_path = os.path.join(tmp_dir, "omop-config.js")
+            with open(config_path, "w", encoding="utf-8") as handle:
+                handle.write("export default {\n  \"before_update\": {},\n  \"after_update\": {}\n};\n")
+
+            tasks_config = run.load_tasks_config(config_path)
+
+        self.assertEqual(tasks_config, {"before_update": {}, "after_update": {}})
+
     def test_load_config_rejects_invalid_source_type(self) -> None:
         with patch.dict(os.environ, {"SOURCE_TYPE": "bogus", "SQLITE_DB_PATH": "test.sqlite3"}, clear=True):
             with self.assertRaises(ValueError):
@@ -122,32 +132,32 @@ class RunConfigTests(unittest.TestCase):
 
     def test_main_json_mode_calls_json_import_and_skips_source_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            config_path = os.path.join(tmp_dir, "config.json")
+            config_path = os.path.join(tmp_dir, "omop-config.js")
             db_path = os.path.join(tmp_dir, "main-test.sqlite3")
             json_path = os.path.join(tmp_dir, "patients.json")
             with open(config_path, "w", encoding="utf-8") as handle:
-                json.dump({}, handle)
+                handle.write("export default {};\n")
             with open(json_path, "w", encoding="utf-8") as handle:
                 json.dump({"patients": []}, handle)
 
             conn_one = sqlite3.connect(db_path)
             conn_two = sqlite3.connect(db_path)
 
-            with patch.object(sys, "argv", ["run.py", "--config", config_path, "--source-type", "json"]), \
-                patch("src.omop_importer.run.load_config", return_value={
+            with patch.object(sys, "argv", ["run.py", "--omop-config", config_path, "--source-type", "json"]), \
+                patch("dphe_db_pipeline.omop_importer.run.load_config", return_value={
                     "SOURCE_TYPE": "json",
                     "SQLITE_DB_PATH": db_path,
                     "JSON_SOURCE_PATH": json_path,
                 }), \
-                patch("src.omop_importer.run._open_sqlite", side_effect=[conn_one, conn_two]), \
-                patch("src.omop_importer.run.drop_table") as mock_drop_table, \
-                patch("src.omop_importer.run.run_json_import") as mock_run_json_import, \
-                patch("src.omop_importer.run.change_column_types") as mock_change_column_types, \
-                patch("src.omop_importer.run.add_indexes_before_update") as mock_add_indexes_before_update, \
-                patch("src.omop_importer.run.create_lookup_tables") as mock_create_lookup_tables, \
-                patch("src.omop_importer.run.create_columns") as mock_create_columns, \
-                patch("src.omop_importer.run.add_indexes_after_update") as mock_add_indexes_after_update, \
-                patch("src.omop_importer.run.process_translation") as mock_process_translation:
+                patch("dphe_db_pipeline.omop_importer.run._open_sqlite", side_effect=[conn_one, conn_two]), \
+                patch("dphe_db_pipeline.omop_importer.run.drop_table") as mock_drop_table, \
+                patch("dphe_db_pipeline.omop_importer.run.run_json_import") as mock_run_json_import, \
+                patch("dphe_db_pipeline.omop_importer.run.change_column_types") as mock_change_column_types, \
+                patch("dphe_db_pipeline.omop_importer.run.add_indexes_before_update") as mock_add_indexes_before_update, \
+                patch("dphe_db_pipeline.omop_importer.run.create_lookup_tables") as mock_create_lookup_tables, \
+                patch("dphe_db_pipeline.omop_importer.run.create_columns") as mock_create_columns, \
+                patch("dphe_db_pipeline.omop_importer.run.add_indexes_after_update") as mock_add_indexes_after_update, \
+                patch("dphe_db_pipeline.omop_importer.run.process_translation") as mock_process_translation:
                 run.main()
 
             self.assertEqual(mock_drop_table.call_count, 4)

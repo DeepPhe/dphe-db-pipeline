@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The project still needs to ingest data from existing MySQL-hosted OMAP datasets, but maintaining MySQL write behavior complicates the system and is no longer required.
+The project still needs to ingest data from existing MySQL-hosted OMOP datasets, but maintaining MySQL write behavior complicates the system and is no longer required.
 
 ## Decision
 
@@ -28,4 +28,3 @@ Positive:
 Tradeoffs:
 - importing from MySQL adds a copy step before downstream processing
 - debugging source data still sometimes requires looking at the MySQL origin directly
-

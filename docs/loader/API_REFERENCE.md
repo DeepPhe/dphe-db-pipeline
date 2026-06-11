@@ -90,16 +90,16 @@ conn.close()
 Run the query script to verify data inside the database:
 
 ```bash
-python query_sqlite.py count ./mydb
-python query_sqlite.py list  ./mydb --limit 20
-python query_sqlite.py get   ./mydb "example.json"
+uv run python -m dphe_db_pipeline.loader.query_sqlite count ./mydb
+uv run python -m dphe_db_pipeline.loader.query_sqlite list  ./mydb --limit 20
+uv run python -m dphe_db_pipeline.loader.query_sqlite get   ./mydb "example.json"
 ```
 
 ## Installation
 
-No extra packages required — `sqlite3` is part of the Python standard library.
+`sqlite3` is part of the Python standard library.
 
 For compression support:
 ```bash
-pip install zstandard lz4
+uv sync
 ```

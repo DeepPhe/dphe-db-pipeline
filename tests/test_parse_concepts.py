@@ -6,16 +6,15 @@ This script parses extracted_concepts.csv and shows a sample of the output.
 """
 
 import csv
-from pathlib import Path
-from typing import Dict, Set, Tuple
 from collections import defaultdict
+from pathlib import Path
 
 
-def parse_concepts_csv(csv_file: Path) -> Dict[Tuple[str, str, bool], Set[str]]:
+def parse_concepts_csv(csv_file: Path) -> dict[tuple[str, str, bool], set[str]]:
     """Parse extracted_concepts.csv and group patients by concept."""
     concepts_by_group = defaultdict(set)
 
-    with open(csv_file, 'r', encoding='utf-8') as f:
+    with open(csv_file, encoding='utf-8') as f:
         reader = csv.DictReader(f)
 
         for row in reader:

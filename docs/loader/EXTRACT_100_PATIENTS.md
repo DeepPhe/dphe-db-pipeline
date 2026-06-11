@@ -1,7 +1,7 @@
 # Extract 100 Patients Script
 
 ## Overview
-This script (`extract_100_patients.py`) extracts the first 100 patients from the `deepphe_sqlite_compressed` database and saves them to a new SQLite database named `deepphe_100`.
+The `dphe_db_pipeline.loader.extract_100_patients` module extracts the first 100 patients from a DeepPhe SQLite file store and saves them to a new SQLite database.
 
 **Patient Identification**: Patient IDs are extracted from the **first part of filenames before the underscore**. For example:
 - `1000000001_04022025183705.json` → Patient ID is `1000000001`
@@ -44,7 +44,7 @@ All files with the same first part are grouped together as belonging to the same
 
 ### Basic usage (uses default paths):
 ```bash
-python3 extract_100_patients.py
+uv run python -m dphe_db_pipeline.loader.extract_100_patients
 ```
 
 This will:
@@ -53,17 +53,12 @@ This will:
 
 ### Custom paths:
 ```bash
-python3 extract_100_patients.py <source_db> <target_db>
+uv run python -m dphe_db_pipeline.loader.extract_100_patients <source_db> <target_db>
 ```
 
 Example:
 ```bash
-python3 extract_100_patients.py deepphe/deepphe_sqlite_compressed my_sample_db
-```
-
-### Using the shell script:
-```bash
-bash extract_100_patients.sh
+uv run python -m dphe_db_pipeline.loader.extract_100_patients deepphe/deepphe_sqlite_compressed my_sample_db
 ```
 
 ## Output
@@ -121,22 +116,22 @@ After extraction, you can verify the new database:
 
 ### Count files:
 ```bash
-python3 query_sqlite.py count deepphe_100
+uv run python -m dphe_db_pipeline.loader.query_sqlite count deepphe_100
 ```
 
 ### List files:
 ```bash
-python3 query_sqlite.py list deepphe_100 --limit 20
+uv run python -m dphe_db_pipeline.loader.query_sqlite list deepphe_100 --limit 20
 ```
 
 ### Query specific patient:
 ```bash
-python3 query_sqlite.py prefix deepphe_100 "{patient_id}_"
+uv run python -m dphe_db_pipeline.loader.query_sqlite prefix deepphe_100 "{patient_id}_"
 ```
 
 ### Get a specific file:
 ```bash
-python3 query_sqlite.py get deepphe_100 "{filename}"
+uv run python -m dphe_db_pipeline.loader.query_sqlite get deepphe_100 "{filename}"
 ```
 
 ## Database Schema
@@ -170,7 +165,7 @@ CREATE TABLE files (
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.13+
 - SQLite3 (built into Python)
 - Source database must exist: `deepphe/deepphe_sqlite_compressed`
 
@@ -181,4 +176,3 @@ The script will:
 - Warn if target database already exists (will overwrite)
 - Handle keyboard interrupts gracefully
 - Print detailed error messages and stack traces if something goes wrong
-

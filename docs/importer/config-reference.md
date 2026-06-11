@@ -1,6 +1,6 @@
 # Config Reference
 
-`config.json` is the main pipeline contract for the source-table-driven pipeline used by `SOURCE_TYPE=csv` and `SOURCE_TYPE=mysql`.
+`omop-config.js` is the main pipeline contract for the source-table-driven pipeline used by `SOURCE_TYPE=csv` and `SOURCE_TYPE=mysql`.
 
 ## Top-level structure
 
@@ -37,7 +37,7 @@ Example:
 
 ```json
 {
-  "destination_schema": "omap",
+  "destination_schema": "omop",
   "destination_table": "DIAGNOSIS_BRCAOVCA_HOSP_VW",
   "destination_column": "CONDITION_START_DATE",
   "destination_column_type": "DATE"
@@ -115,7 +115,7 @@ Example ICD operation:
 {
   "operation": {
     "destination_schema": "lookup",
-    "source_schema": "omap",
+    "source_schema": "omop",
     "type": "ICD",
     "tables": "DIAGNOSIS_BRCAOVCA_HOSP_VW,DIAGNOSIS_BRCAOVCA_OUTPT_VW,...",
     "code_column": "CONDITION_SOURCE_VALUE",
@@ -139,7 +139,7 @@ Example:
   "destination_schema": "lookup",
   "destination_table": "CALCULATED_PATIENT_DATA",
   "destination_column": "PERSON_ID",
-  "source_schema": "omap",
+  "source_schema": "omop",
   "source_tables": "DEMOGRAPHIC_BRCAOVCA_VW,DEMOGRAPHIC_MELANOMA_VW",
   "source_columns": "PERSON_ID,PERSON_ID",
   "join_on": "PERSON_ID",
@@ -169,7 +169,7 @@ Example:
 
 ```json
 {
-  "source_schema": "omap",
+  "source_schema": "omop",
   "source_tables": "DEMOGRAPHIC_BRCAOVCA_VW,DEMOGRAPHIC_MELANOMA_VW",
   "destination_schema": "lookup",
   "destination_table": "CALCULATED_PATIENT_DATA",
@@ -181,10 +181,10 @@ Example:
 
 ## Important caveats
 
-1. `config.json` primarily describes the `csv`/`mysql` path, not JSON mode.
-2. Schema names like `omap` and `lookup` are logical grouping labels retained from earlier implementations.
+1. `omop-config.js` primarily describes the `csv`/`mysql` path, not JSON mode.
+2. Schema names like `omop` and `lookup` are logical grouping labels retained from earlier implementations; `omop` is not the public name of the database.
 3. Some fields are MySQL-shaped even though the current destination is SQLite.
-4. If you are debugging pipeline behavior, trace `run.py` -> `source/config_processor.py` -> `db/omap/*` helpers.
+4. If you are debugging pipeline behavior, trace `run.py` -> `source/config_processor.py` -> `db/omop/*` helpers.
 
 ## How to work with this file safely
 
@@ -193,4 +193,3 @@ When revisiting the project:
 2. Map each section to the function that consumes it.
 3. Prefer additive edits with tests over broad refactors.
 4. Re-run `uv run python -m unittest discover -s tests` after any config-driven code change.
-

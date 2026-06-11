@@ -21,7 +21,7 @@ def _load_module(relative_path: str, module_name: str):
 def test_parse_attributes_ignores_value_column(tmp_path):
     """Rows differing only by `value` should collapse into one grouped attribute."""
     parser_module = _load_module(
-        "src/extractor/parsers/parse_attributes_by_group.py",
+        "src/dphe_db_pipeline/extractor/parsers/parse_attributes_by_group.py",
         "parse_attributes_by_group_for_test",
     )
 
@@ -71,7 +71,7 @@ def test_parse_attributes_ignores_value_column(tmp_path):
 
     grouped_csv = tmp_path / "attributes_by_group.csv"
     parser_module.export_to_csv(grouped, grouped_csv)
-    with open(grouped_csv, "r", encoding="utf-8") as handle:
+    with open(grouped_csv, encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames is not None
         assert "value" not in reader.fieldnames
@@ -80,7 +80,7 @@ def test_parse_attributes_ignores_value_column(tmp_path):
 def test_extractor_does_not_emit_value_column(tmp_path):
     """CancerDataExtractor attribute output should never include a `value` field."""
     extractor_module = _load_module(
-        "src/extractor/extractors/extract_cancers_data.py",
+        "src/dphe_db_pipeline/extractor/extractors/extract_cancers_data.py",
         "extract_cancers_data_for_test",
     )
 
@@ -119,7 +119,7 @@ def test_extractor_does_not_emit_value_column(tmp_path):
     output_csv = tmp_path / "extracted_attributes" / "extracted_attributes_1.csv"
     assert output_csv.exists()
 
-    with open(output_csv, "r", encoding="utf-8") as handle:
+    with open(output_csv, encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames is not None
         assert "value" not in reader.fieldnames
@@ -128,7 +128,7 @@ def test_extractor_does_not_emit_value_column(tmp_path):
 def test_importer_attributes_table_has_no_value_column(tmp_path):
     """Importer should create attributes_by_group table without a `value` column."""
     importer_module = _load_module(
-        "src/extractor/import_parsed_data.py",
+        "src/dphe_db_pipeline/extractor/import_parsed_data.py",
         "import_parsed_data_for_test",
     )
 

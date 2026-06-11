@@ -34,10 +34,11 @@ dev = [
 ]
 
 [project.scripts]
-extract-cancers = "deepphe_concept_extractor.cli:extract_cancers_cli"
-extract-concepts = "deepphe_concept_extractor.cli:extract_concepts_cli"
-explore-db = "deepphe_concept_extractor.cli:explore_db_cli"
-create-concepts-table = "deepphe_concept_extractor.cli:create_concepts_table_cli"
+dphe-pipeline = "dphe_db_pipeline.pipeline:main"
+extract-cancers = "dphe_db_pipeline.cli:extract_cancers_cli"
+extract-concepts = "dphe_db_pipeline.cli:extract_concepts_cli"
+explore-db = "dphe_db_pipeline.cli:explore_db_cli"
+create-concepts-table = "dphe_db_pipeline.cli:create_concepts_table_cli"
 
 [dependency-groups]
 dev = [
@@ -47,7 +48,10 @@ dev = [
 ]
 
 [tool.uv]
-package = false
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dphe_db_pipeline"]
 
 [tool.ruff]
 line-length = 100
@@ -75,6 +79,36 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+    "icd10",
+    "icd9cms",
+    "lz4.*",
+    "mysql.*",
+    "pandas.*",
+    "seaborn.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dphe_db_pipeline.analysis.*",
+    "dphe_db_pipeline.extractor.*",
+    "dphe_db_pipeline.loader.*",
+    "dphe_db_pipeline.omop_importer.db.*",
+    "dphe_db_pipeline.omop_importer.export_tables",
+    "dphe_db_pipeline.omop_importer.load_tables",
+    "dphe_db_pipeline.omop_importer.omop_mappers.*",
+    "dphe_db_pipeline.omop_importer.reports.*",
+    "dphe_db_pipeline.omop_importer.run",
+    "dphe_db_pipeline.omop_importer.source.config_processor",
+    "dphe_db_pipeline.utils.*",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+warn_return_any = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
