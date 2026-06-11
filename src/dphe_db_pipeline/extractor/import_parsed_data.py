@@ -31,10 +31,6 @@ except ImportError:
     BITMAP_AVAILABLE = False
     BitMap = None
 
-SRC_DIR = Path(__file__).resolve().parents[2]
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
-
 # Increase CSV field size limit to handle very large patient_ids fields
 csv.field_size_limit(int(1e8))  # 100 MB limit
 
@@ -888,6 +884,5 @@ def main() -> bool:
 
 
 if __name__ == "__main__":
-    import sys
     success = main()
     sys.exit(0 if success else 1)

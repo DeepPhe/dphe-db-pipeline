@@ -29,7 +29,13 @@ def preload_concepts(conn: sqlite3.Connection) -> list[IndexedRow]:
         name = humanize_class_uri(class_uri)
         neg = bool(negated)
 
-        def factory(_sid, _name=name, _uri=class_uri, _bucket=bucket, _neg=neg, _grp=dphe_group):
+        def factory(
+            _sid: int,
+            _name: str = name,
+            _uri: str = class_uri,
+            _bucket: str = bucket,
+            _neg: bool = neg,
+        ) -> ConceptHit:
             return ConceptHit(
                 name=_name, raw_uri=_uri, bucket=_bucket,
                 source_table="concepts", negated=_neg,
@@ -49,7 +55,14 @@ def preload_cancers(conn: sqlite3.Connection) -> list[IndexedRow]:
         name = humanize_class_uri(class_uri)
         neg, unc, hist = bool(negated), bool(uncertain), bool(historic)
 
-        def factory(_sid, _name=name, _uri=class_uri, _neg=neg, _unc=unc, _hist=hist):
+        def factory(
+            _sid: int,
+            _name: str = name,
+            _uri: str = class_uri,
+            _neg: bool = neg,
+            _unc: bool = unc,
+            _hist: bool = hist,
+        ) -> ConceptHit:
             return ConceptHit(
                 name=_name, raw_uri=_uri, bucket="cancers",
                 source_table="cancers", negated=_neg, uncertain=_unc, historic=_hist,
@@ -68,7 +81,14 @@ def preload_tumors(conn: sqlite3.Connection) -> list[IndexedRow]:
         name = humanize_class_uri(class_uri)
         neg, unc, hist = bool(negated), bool(uncertain), bool(historic)
 
-        def factory(_sid, _name=name, _uri=class_uri, _neg=neg, _unc=unc, _hist=hist):
+        def factory(
+            _sid: int,
+            _name: str = name,
+            _uri: str = class_uri,
+            _neg: bool = neg,
+            _unc: bool = unc,
+            _hist: bool = hist,
+        ) -> ConceptHit:
             return ConceptHit(
                 name=_name, raw_uri=_uri, bucket="tumors",
                 source_table="tumors", negated=_neg, uncertain=_unc, historic=_hist,
@@ -90,9 +110,15 @@ def preload_attributes(conn: sqlite3.Connection) -> list[IndexedRow]:
         neg, unc, hist = bool(negated), bool(uncertain), bool(historic)
 
         def factory(
-            _sid, _name=name, _uri=class_uri, _bucket=bucket,
-            _neg=neg, _unc=unc, _hist=hist, _attr=attr_name,
-        ):
+            _sid: int,
+            _name: str = name,
+            _uri: str = class_uri,
+            _bucket: str = bucket,
+            _neg: bool = neg,
+            _unc: bool = unc,
+            _hist: bool = hist,
+            _attr: str = attr_name,
+        ) -> ConceptHit:
             return ConceptHit(
                 name=_name, raw_uri=_uri, bucket=_bucket,
                 source_table="attributes", negated=_neg,

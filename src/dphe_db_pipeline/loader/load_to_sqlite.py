@@ -13,6 +13,8 @@ from multiprocessing import Manager, Pool
 from pathlib import Path
 from zipfile import ZipFile
 
+from dphe_db_pipeline.loader.compression import build_compressor, maybe_compress
+
 
 def _ensure_schema(conn: sqlite3.Connection):
     """Ensure the files table exists with expected columns and indexes."""
@@ -33,47 +35,6 @@ def _ensure_schema(conn: sqlite3.Connection):
     # Index to speed prefix searches
     cur.execute('CREATE INDEX IF NOT EXISTS idx_files_filename ON files(filename)')
     conn.commit()
-
-
-def _build_compressor(algo: str, level: int):
-    """Build and return a compressor object and a callable that compresses bytes.
-    Returns (algo_name, compressor, compress_fn). algo_name is 'zstd'/'lz4'/'raw'.
-    """
-    algo = (algo or 'zstd').lower()
-    if algo == 'none' or algo == 'raw':
-        return 'raw', None, (lambda b: b)
-    if algo == 'zstd':
-        try:
-            import zstandard as zstd
-        except ImportError as e:
-            raise RuntimeError("zstandard package is required for --compress zstd. Install with: pip install zstandard") from e
-        c = zstd.ZstdCompressor(level=level)
-        return 'zstd', c, (lambda b: c.compress(b))
-    if algo == 'lz4':
-        try:
-            import lz4.frame as lz4f
-        except ImportError as e:
-            raise RuntimeError("lz4 package is required for --compress lz4. Install with: pip install lz4") from e
-        return 'lz4', None, (lambda b: lz4f.compress(b, compression_level=level))
-    raise ValueError(f"Unsupported compression algorithm: {algo}")
-
-
-def _maybe_compress(data: bytes, algo_name: str, compress_fn, min_bytes: int) -> tuple[bytes, str]:
-    """Compress data if it's large enough and compression helps; returns (stored_bytes, encoding)."""
-    if algo_name == 'raw':
-        return data, 'raw'
-    if len(data) < max(0, int(min_bytes)):
-        return data, 'raw'
-    try:
-        comp = compress_fn(data)
-        # Only keep compressed if smaller
-        if len(comp) < len(data):
-            return comp, algo_name
-        return data, 'raw'
-    except Exception:
-        # On any compression failure, store raw
-        return data, 'raw'
-
 
 def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', compression_level: int = 1, min_compress_bytes: int = 512):
     """
@@ -96,7 +57,7 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
     total_bytes = 0
 
     # Build compressor in this worker
-    algo_name, _comp, compress_fn = _build_compressor(compress_algo, compression_level)
+    algo_name, _comp, compress_fn = build_compressor(compress_algo, compression_level)
 
     try:
         # Read all files from zip first (parallel processing - no lock needed)
@@ -111,7 +72,7 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                     value = zf.read(file_name)
 
                     # Optionally compress
-                    store_bytes, encoding = _maybe_compress(value, algo_name, compress_fn, min_compress_bytes)
+                    store_bytes, encoding = maybe_compress(value, algo_name, compress_fn, min_compress_bytes)
 
                     # Store data for batch insertion
                     file_data_list.append((file_name, store_bytes, encoding))
@@ -213,7 +174,7 @@ def load_files_to_db(
     conn.execute('BEGIN TRANSACTION')
 
     # Build compressor for main thread paths
-    algo_name_main, _comp_main, compress_fn_main = _build_compressor(compress, level)
+    algo_name_main, _comp_main, compress_fn_main = build_compressor(compress, level)
 
     # Load files into database
     loaded_count = 0
@@ -283,7 +244,7 @@ def load_files_to_db(
                     value = zf.read(file_name)
 
                     # Optionally compress
-                    store_bytes, encoding = _maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
+                    store_bytes, encoding = maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
 
                     # Store in SQLite (will replace if key exists)
                     cursor.execute(
@@ -332,7 +293,7 @@ def load_files_to_db(
                     value = f.read()
 
                 # Optionally compress
-                store_bytes, encoding = _maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
+                store_bytes, encoding = maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
 
                 # Store in SQLite
                 cursor.execute(

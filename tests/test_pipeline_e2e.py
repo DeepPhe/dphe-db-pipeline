@@ -93,7 +93,8 @@ def test_full_pipeline(tmp_path):
     result = subprocess.run(
         [
             sys.executable,
-            str(_REPO_ROOT / "src/dphe_db_pipeline/extractor/regenerate_data_pipeline.py"),
+            "-m",
+            "dphe_db_pipeline.extractor.regenerate_data_pipeline",
             "--database", str(db_path),
             "--omop-database", str(db_path),
             "--data-dir", str(data_dir),

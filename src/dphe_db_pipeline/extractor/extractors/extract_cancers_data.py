@@ -17,19 +17,12 @@ import json
 import logging
 import queue
 import sqlite3
-import sys
 from collections.abc import Iterator
 from pathlib import Path
 from threading import Thread
 from typing import Any, NamedTuple
 
-zstd: Any
-try:
-    import zstandard as zstd
-    ZSTD_AVAILABLE = True
-except ImportError:
-    ZSTD_AVAILABLE = False
-    zstd = None
+from dphe_db_pipeline.extractor.stored_content import decode_stored_content
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,45 +77,6 @@ class DatabaseReader:
             self.conn.close()
             logger.info("Disconnected from database")
 
-    def _decompress_content(self, content: Any, encoding: str) -> str:
-        """
-        Decompress and decode content based on encoding.
-
-        Args:
-            content: Raw content (bytes or string)
-            encoding: Encoding type (utf-8, zstd, raw, etc.)
-
-        Returns:
-            Decoded string content
-        """
-        # If already a string, return it
-        if isinstance(content, str):
-            return content
-
-        # If not bytes at this point, convert to string
-        if not isinstance(content, bytes):
-            return str(content)
-
-        # Handle zstd compression
-        if encoding and encoding.lower() == 'zstd':
-            if not ZSTD_AVAILABLE:
-                raise ImportError("zstandard library required for zstd decompression. Install with: pip install zstandard")
-            dctx = zstd.ZstdDecompressor()
-            decompressed = dctx.decompress(content)
-            return decompressed.decode('utf-8')
-
-        # Handle raw encoding (plain bytes, decode as utf-8)
-        if encoding and encoding.lower() == 'raw':
-            return content.decode('utf-8', errors='replace')
-
-        # Default: decode as specified encoding or utf-8
-        enc = encoding if encoding and encoding.lower() != 'none' else 'utf-8'
-        try:
-            return content.decode(enc)
-        except (LookupError, UnicodeDecodeError):
-            # If specified encoding fails, fall back to utf-8 with error replacement
-            return content.decode('utf-8', errors='replace')
-
     def get_cancer_files(
         self,
         limit: int | None = None,
@@ -173,7 +127,7 @@ class DatabaseReader:
                     patient_id = filename.replace('_Cancers.json', '').replace('.json', '')
 
                     # Decompress/decode content
-                    content_str = self._decompress_content(content, encoding)
+                    content_str = decode_stored_content(content, encoding)
 
                     # Parse JSON
                     json_content = json.loads(content_str)
@@ -245,7 +199,7 @@ class DatabaseReader:
                     patient_id = filename.replace('_Concepts.json', '').replace('.json', '')
 
                     # Decompress/decode content
-                    content_str = self._decompress_content(content, encoding)
+                    content_str = decode_stored_content(content, encoding)
 
                     # Parse JSON
                     json_content = json.loads(content_str)
@@ -787,10 +741,6 @@ def run_extraction(db_path: Path, output_dir: Path) -> tuple[int, int]:
 def main() -> int:
     """CLI entry point."""
     import argparse
-
-    src_dir = Path(__file__).resolve().parents[3]
-    if str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
 
     from dphe_db_pipeline.paths import DEFAULT_COMPRESSED_DB, DEFAULT_EXTRACTION_DATA_DIR
 

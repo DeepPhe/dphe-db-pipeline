@@ -25,33 +25,22 @@ import argparse
 import json
 import logging
 import sqlite3
-import sys
+from collections.abc import Callable
 from pathlib import Path
 
-try:
-    from dphe_db_pipeline.extractor.patient_summaries.bitmap_index import (
-        preload_attributes,
-        preload_cancers,
-        preload_concepts,
-        preload_tumors,
-    )
-    from dphe_db_pipeline.extractor.patient_summaries.demographics import load_demographics
-    from dphe_db_pipeline.extractor.patient_summaries.models import PatientSummary, _hit_to_dict
-    from dphe_db_pipeline.extractor.patient_summaries.postprocess import dedup_and_merge
-except ImportError:
-    # Allow running as a direct script from arbitrary cwd.
-    src_dir = Path(__file__).resolve().parents[2]
-    if str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
-    from dphe_db_pipeline.extractor.patient_summaries.bitmap_index import (
-        preload_attributes,
-        preload_cancers,
-        preload_concepts,
-        preload_tumors,
-    )
-    from dphe_db_pipeline.extractor.patient_summaries.demographics import load_demographics
-    from dphe_db_pipeline.extractor.patient_summaries.models import PatientSummary, _hit_to_dict
-    from dphe_db_pipeline.extractor.patient_summaries.postprocess import dedup_and_merge
+from dphe_db_pipeline.extractor.patient_summaries.bitmap_index import (
+    preload_attributes,
+    preload_cancers,
+    preload_concepts,
+    preload_tumors,
+)
+from dphe_db_pipeline.extractor.patient_summaries.demographics import load_demographics
+from dphe_db_pipeline.extractor.patient_summaries.models import (
+    IndexedRow,
+    PatientSummary,
+    _hit_to_dict,
+)
+from dphe_db_pipeline.extractor.patient_summaries.postprocess import dedup_and_merge
 
 logging.basicConfig(
     level=logging.INFO,
@@ -100,7 +89,11 @@ def _try_load_demographics(
         return {}
 
 
-def _try_preload(conn: sqlite3.Connection, table: str, loader):
+def _try_preload(
+    conn: sqlite3.Connection,
+    table: str,
+    loader: Callable[[sqlite3.Connection], list[IndexedRow]],
+) -> list[IndexedRow]:
     """Preload a bitmap index table, returning empty list if absent."""
     if not _table_exists(conn, table):
         logger.warning("Table '%s' not found -- skipping.", table)
@@ -120,7 +113,7 @@ def build_summary(
     sequential_id: int,
     patient_id: str,
     demographics: dict[str, str | None],
-    index_rows: list,
+    index_rows: list[IndexedRow],
 ) -> PatientSummary:
     """Build a PatientSummary by scanning all bitmap index rows for this patient."""
     summary = PatientSummary(

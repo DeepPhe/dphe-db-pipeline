@@ -35,10 +35,6 @@ dev = [
 
 [project.scripts]
 dphe-pipeline = "dphe_db_pipeline.pipeline:main"
-extract-cancers = "dphe_db_pipeline.cli:extract_cancers_cli"
-extract-concepts = "dphe_db_pipeline.cli:extract_concepts_cli"
-explore-db = "dphe_db_pipeline.cli:explore_db_cli"
-create-concepts-table = "dphe_db_pipeline.cli:create_concepts_table_cli"
 
 [dependency-groups]
 dev = [
@@ -94,7 +90,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "dphe_db_pipeline.analysis.*",
-    "dphe_db_pipeline.extractor.*",
+    "dphe_db_pipeline.extractor.extract_calculated_dx_data",
+    "dphe_db_pipeline.extractor.extract_calculated_patient_data",
+    "dphe_db_pipeline.extractor.extractors.*",
+    "dphe_db_pipeline.extractor.import_parsed_data",
+    "dphe_db_pipeline.extractor.parsers.*",
+    "dphe_db_pipeline.extractor.queries.*",
     "dphe_db_pipeline.loader.*",
     "dphe_db_pipeline.omop_importer.db.*",
     "dphe_db_pipeline.omop_importer.export_tables",

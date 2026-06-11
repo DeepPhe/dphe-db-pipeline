@@ -6,16 +6,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parents[1]
+DEFAULT_OUTPUT_ROOT = Path.cwd() / "output"
 
 DEFAULT_INPUT_DIR = PACKAGE_ROOT / "resources" / "example" / "dphe_output"
 DEFAULT_OMOP_DEMOGRAPHICS = (
     PACKAGE_ROOT / "resources" / "example" / "omop_data" / "patient_demographics.json"
 )
-DEFAULT_COMPRESSED_DB = REPO_ROOT / "output" / "databases" / "individual" / "deepphe.sqlite3"
-DEFAULT_OMOP_DB = REPO_ROOT / "output" / "databases" / "individual" / "omop.sqlite3"
+DEFAULT_COMPRESSED_DB = DEFAULT_OUTPUT_ROOT / "databases" / "individual" / "deepphe.sqlite3"
+DEFAULT_OMOP_DB = DEFAULT_OUTPUT_ROOT / "databases" / "individual" / "omop.sqlite3"
 DEFAULT_IMPORTER_CONFIG = PACKAGE_ROOT / "omop_importer" / "omop-config.js"
-DEFAULT_EXTRACTION_DATA_DIR = REPO_ROOT / "output" / "extraction" / "data"
+DEFAULT_EXTRACTION_DATA_DIR = DEFAULT_OUTPUT_ROOT / "extraction" / "data"
 
 
 @dataclass(frozen=True)

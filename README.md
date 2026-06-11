@@ -27,7 +27,7 @@ This uses:
 - OMOP demographics JSON: `src/dphe_db_pipeline/resources/example/omop_data/patient_demographics.json`
 - OMOP importer config: `src/dphe_db_pipeline/omop_importer/omop-config.js`
 
-Default outputs:
+Default outputs, relative to the directory where you run the command:
 
 - DeepPhe SQLite DB: `output/databases/individual/deepphe.sqlite3`
 - OMOP SQLite DB: `output/databases/individual/omop.sqlite3`
@@ -101,7 +101,7 @@ src/dphe_db_pipeline/
 └── utils/
 ```
 
-Tests live in `tests/`. Generated databases and extracted files live under `output/` and are gitignored.
+Tests live in `tests/`. Generated databases and extracted files live under `output/` in the current working directory and are gitignored.
 
 ## Development
 

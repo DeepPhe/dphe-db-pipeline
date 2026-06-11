@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-# ruff: noqa: E402
 """Generate grouped CSVs from extracted Stage 3 CSV shards."""
 
 from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-SRC_DIR = Path(__file__).resolve().parents[2]
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from dphe_db_pipeline.extractor.parsers.parse_attributes_by_group import (
     export_to_csv as export_attributes_to_csv,

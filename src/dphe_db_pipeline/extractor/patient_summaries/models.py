@@ -4,6 +4,7 @@ Data classes for patient summary generation.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -90,7 +91,7 @@ class PatientSummary:
 class IndexedRow:
     """Pre-deserialized bitmap row from any *_by_group table."""
     bitmap: Any  # pyroaring.BitMap (Any to avoid hard import in tests)
-    hit_factory: Any  # callable(sequential_id) -> ConceptHit or None
+    hit_factory: Callable[[int], ConceptHit | None]
 
 
 # ---------------------------------------------------------------------------

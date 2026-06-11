@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
-# ruff: noqa: E402
 """Regenerate extracted/grouped CSVs and re-import them into SQLite."""
 
 from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from pathlib import Path
-
-SRC_DIR = Path(__file__).resolve().parents[2]
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from dphe_db_pipeline.paths import (
     DEFAULT_COMPRESSED_DB,

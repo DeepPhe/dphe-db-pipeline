@@ -15,7 +15,6 @@ from dphe_db_pipeline.paths import (
     DEFAULT_INPUT_DIR,
     DEFAULT_OMOP_DB,
     DEFAULT_OMOP_DEMOGRAPHICS,
-    REPO_ROOT,
 )
 
 logging.basicConfig(
@@ -276,7 +275,7 @@ def main() -> int:
 
     logger.info("=" * 60)
     logger.info("DEEPPHE FULL PIPELINE")
-    logger.info("Base directory: %s", REPO_ROOT)
+    logger.info("Working directory: %s", Path.cwd())
     logger.info("=" * 60)
 
     compressed_db = args.compressed_db.resolve()
