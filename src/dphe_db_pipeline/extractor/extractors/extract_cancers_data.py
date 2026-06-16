@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Extract cancer and concept data directly from deepphe_sqlite_compressed database.
+Extract cancer and concept data directly from the DeepPhe SQLite database.
 
 Reads _Cancers.json and _Concepts.json files from the database 'files' table
 and exports processed data to CSV files.
@@ -44,9 +44,9 @@ class ConceptInfo(NamedTuple):
 
 
 class DatabaseReader:
-    """Read JSON files from deepphe_100 database."""
+    """Read JSON files from the DeepPhe SQLite database."""
 
-    def __init__(self, db_path: str = "deepphe_100"):
+    def __init__(self, db_path: str = "output/databases/individual/deepphe.sqlite3"):
         """
         Initialize database reader.
 

@@ -9,8 +9,7 @@ from pathlib import Path
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).resolve().parents[3]
-    db_path = base_dir / "deepphe_100"
+    db_path = Path("output/databases/individual/deepphe_100.sqlite3")
 
     if not db_path.exists():
         print(f"ERROR: Database not found at {db_path}")

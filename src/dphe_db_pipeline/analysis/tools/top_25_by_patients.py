@@ -304,8 +304,8 @@ def print_summary(attributes: list[dict[str, Any]],
 def main():
     """Main entry point."""
     # Determine database path
-    script_dir = Path(__file__).resolve().parents[3]
-    db_path = script_dir / "output" / "databases" / "individual" / "deepphe.sqlite3"
+    repo_root = Path(__file__).resolve().parents[4]
+    db_path = repo_root / "output" / "databases" / "individual" / "deepphe.sqlite3"
 
     if not db_path.exists():
         print(f"ERROR: Database not found at {db_path}")

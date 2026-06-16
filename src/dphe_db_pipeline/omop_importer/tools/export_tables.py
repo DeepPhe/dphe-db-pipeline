@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-_MODULE_DIR = Path(__file__).resolve().parent
+_IMPORTER_DIR = Path(__file__).resolve().parents[1]
 
 
 load_dotenv()
@@ -122,7 +122,7 @@ def run_csv_export(config):
     export_table(config, "CALCULATED_DX_DATA", "calculated_dx_data.csv", ["CANCER", "AGE_AT_DX"], delimiter)
     export_table(config, "CALCULATED_PATIENT_DATA", "calculated_patient_data.csv", ["GENDER", "RACE", "ETHNICITY"], delimiter)
 
-    sql_dir = str(_MODULE_DIR / "db" / "export-queries")
+    sql_dir = str(_IMPORTER_DIR / "db" / "export-queries")
     if not os.path.isdir(sql_dir):
         print(f"No export-queries directory found at {sql_dir} — skipping SQL exports.")
         return

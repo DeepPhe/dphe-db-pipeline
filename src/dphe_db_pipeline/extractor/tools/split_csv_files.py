@@ -225,7 +225,7 @@ class CSVSplitter:
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).resolve().parents[3]
+    base_dir = Path(__file__).resolve().parents[4]
     input_dir = base_dir / 'output' / 'extraction' / 'data'
     output_dir = base_dir / 'output' / 'extraction' / 'data_split'
 

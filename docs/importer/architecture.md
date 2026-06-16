@@ -119,5 +119,5 @@ Primary downstream tables used by exports and reports:
 - `db/omop/lookup_table_ops.py` — lookup table creation; `omop` is a legacy internal package name
 - `db/omop/translate_ops.py` — concept translation logic
 - `db/omop/icd_ops.py` — ICD-derived table logic
-- `export_tables.py` — export to delimited files
-- `reports/` — analysis and plotting scripts
+- `tools/export_tables.py` — export to delimited files
+- `tools/` — ad hoc analysis, import/export, and reporting scripts

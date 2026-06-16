@@ -14,7 +14,7 @@ from pathlib import Path
 
 def get_default_db_path() -> Path:
     """Return the default path to the DeepPhe OMOP SQLite database."""
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[4]
     return repo_root / "output" / "databases" / "individual" / "omop.sqlite3"
 
 
@@ -252,7 +252,7 @@ def main():
 
     # Export AGE_AT_DX groups across all cancers
     age_groups = aggregate_age_groups(patients_by_cancer)
-    base_dir = Path(__file__).resolve().parents[3] / "output" / "extraction" / "data"
+    base_dir = Path(__file__).resolve().parents[4] / "output" / "extraction" / "data"
     export_age_groups_to_csv(age_groups, base_dir / "omop.age_at_dx.csv")
     print(f"\nCSV written to: {base_dir / 'omop.age_at_dx.csv'}")
 

@@ -109,14 +109,14 @@ sqlite3 output/databases/individual/jsontest.sqlite3 "SELECT CANCER, COUNT(*) FR
 
 ```bash
 cd /path/to/dphe-db-pipeline
-uv run python -m dphe_db_pipeline.omop_importer.export_tables
+uv run python -m dphe_db_pipeline.omop_importer.tools.export_tables
 ```
 
 ### Generate report outputs
 
 ```bash
 cd /path/to/dphe-db-pipeline
-uv run python -m dphe_db_pipeline.omop_importer.reports.age_cancer
+uv run python -m dphe_db_pipeline.omop_importer.tools.age_cancer
 ```
 
 ## Recommended re-entry path after time away

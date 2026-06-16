@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script to extract the first 100 patients from deepphe_sqlite_compressed
-and save them to a new SQLite database named deepphe_100.
+Script to extract the first 100 patients from the DeepPhe SQLite database
+and save them to a smaller sample SQLite database.
 
 Assumes filenames follow pattern: {patient_id}_{timestamp}_{rest}
 """
@@ -9,6 +9,9 @@ Assumes filenames follow pattern: {patient_id}_{timestamp}_{rest}
 import sqlite3
 import sys
 from pathlib import Path
+
+DEFAULT_SOURCE_DB = "output/databases/individual/deepphe.sqlite3"
+DEFAULT_TARGET_DB = "output/databases/individual/deepphe_100.sqlite3"
 
 
 def open_db(db_path: str, read_only: bool = False):
@@ -44,7 +47,7 @@ def extract_100_patients(source_db_path: str, target_db_path: str):
     Extract first 100 patients from source database and save to target database.
 
     Args:
-        source_db_path: Path to source database (deepphe_sqlite_compressed)
+        source_db_path: Path to source DeepPhe SQLite database
         target_db_path: Path to target database (will be created/overwritten)
     """
     print(f"Opening source database: {source_db_path}")
@@ -225,11 +228,11 @@ def main():
     """Main entry point."""
     if len(sys.argv) > 1:
         source_db = sys.argv[1]
-        target_db = sys.argv[2] if len(sys.argv) > 2 else "deepphe_100"
+        target_db = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_TARGET_DB
     else:
         # Default paths
-        source_db = "output/databases/individual/deepphe.sqlite3"
-        target_db = "deepphe_100"
+        source_db = DEFAULT_SOURCE_DB
+        target_db = DEFAULT_TARGET_DB
 
     source_path = Path(source_db)
     if not source_path.exists():

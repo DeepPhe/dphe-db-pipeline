@@ -3,7 +3,7 @@
 Analysis module for DeepPhe data.
 
 This package contains analysis scripts for:
-- Patient cohort analysis (top_25_by_patients.py)
+- Patient cohort analysis (tools/top_25_by_patients.py)
 - Statistical reporting
 - Data exploration
 """

@@ -58,6 +58,5 @@ def check_patients(db_path: str):
     conn.close()
 
 if __name__ == "__main__":
-    db_path = sys.argv[1] if len(sys.argv) > 1 else "deepphe_100"
+    db_path = sys.argv[1] if len(sys.argv) > 1 else "output/databases/individual/deepphe_100.sqlite3"
     check_patients(db_path)
-

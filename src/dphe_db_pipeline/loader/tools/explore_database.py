@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to explore the deepphe_100 database structure.
-"""
+"""Script to explore the sample DeepPhe SQLite database structure."""
 
 import sqlite3
 from pathlib import Path
@@ -9,8 +7,7 @@ from pathlib import Path
 
 def main():
     """Main entry point."""
-    base_dir = Path(__file__).resolve().parents[3]
-    db_path = base_dir / "deepphe_100"
+    db_path = Path("output/databases/individual/deepphe_100.sqlite3")
 
     if not db_path.exists():
         print(f"ERROR: Database not found at {db_path}")

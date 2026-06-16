@@ -90,9 +90,9 @@ conn.close()
 Run the query script to verify data inside the database:
 
 ```bash
-uv run python -m dphe_db_pipeline.loader.query_sqlite count ./mydb
-uv run python -m dphe_db_pipeline.loader.query_sqlite list  ./mydb --limit 20
-uv run python -m dphe_db_pipeline.loader.query_sqlite get   ./mydb "example.json"
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite count ./mydb
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite list  ./mydb --limit 20
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite get   ./mydb "example.json"
 ```
 
 ## Installation

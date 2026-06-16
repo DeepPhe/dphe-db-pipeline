@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from .run import run_csv_import
+from dphe_db_pipeline.omop_importer.run import run_csv_import
 
 load_dotenv()
 

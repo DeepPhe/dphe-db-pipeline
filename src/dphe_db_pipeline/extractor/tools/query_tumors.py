@@ -255,7 +255,7 @@ Examples:
     # Resolve database path
     db_path = Path(args.db)
     if not db_path.is_absolute():
-        db_path = Path(__file__).resolve().parents[3] / db_path
+        db_path = Path(__file__).resolve().parents[4] / db_path
 
     if not db_path.exists():
         print(f"ERROR: Database not found at {db_path}")

@@ -90,21 +90,20 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "dphe_db_pipeline.analysis.*",
-    "dphe_db_pipeline.extractor.extract_calculated_dx_data",
-    "dphe_db_pipeline.extractor.extract_calculated_patient_data",
+    "dphe_db_pipeline.extractor.tools.extract_calculated_dx_data",
+    "dphe_db_pipeline.extractor.tools.extract_calculated_patient_data",
     "dphe_db_pipeline.extractor.extractors.*",
     "dphe_db_pipeline.extractor.import_parsed_data",
     "dphe_db_pipeline.extractor.parsers.*",
-    "dphe_db_pipeline.extractor.queries.*",
+    "dphe_db_pipeline.extractor.tools.*",
     "dphe_db_pipeline.loader.*",
     "dphe_db_pipeline.omop_importer.db.*",
-    "dphe_db_pipeline.omop_importer.export_tables",
-    "dphe_db_pipeline.omop_importer.load_tables",
+    "dphe_db_pipeline.omop_importer.tools.export_tables",
+    "dphe_db_pipeline.omop_importer.tools.load_tables",
     "dphe_db_pipeline.omop_importer.omop_mappers.*",
-    "dphe_db_pipeline.omop_importer.reports.*",
+    "dphe_db_pipeline.omop_importer.tools.age_cancer",
     "dphe_db_pipeline.omop_importer.run",
     "dphe_db_pipeline.omop_importer.source.config_processor",
-    "dphe_db_pipeline.utils.*",
 ]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false

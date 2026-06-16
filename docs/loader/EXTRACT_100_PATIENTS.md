@@ -1,7 +1,7 @@
 # Extract 100 Patients Script
 
 ## Overview
-The `dphe_db_pipeline.loader.extract_100_patients` module extracts the first 100 patients from a DeepPhe SQLite file store and saves them to a new SQLite database.
+The `dphe_db_pipeline.loader.tools.extract_100_patients` module extracts the first 100 patients from a DeepPhe SQLite file store and saves them to a new SQLite database.
 
 **Patient Identification**: Patient IDs are extracted from the **first part of filenames before the underscore**. For example:
 - `1000000001_04022025183705.json` → Patient ID is `1000000001`
@@ -44,21 +44,21 @@ All files with the same first part are grouped together as belonging to the same
 
 ### Basic usage (uses default paths):
 ```bash
-uv run python -m dphe_db_pipeline.loader.extract_100_patients
+uv run python -m dphe_db_pipeline.loader.tools.extract_100_patients
 ```
 
 This will:
-- Read from: `deepphe/deepphe_sqlite_compressed`
-- Write to: `deepphe_100`
+- Read from: `output/databases/individual/deepphe.sqlite3`
+- Write to: `output/databases/individual/deepphe_100.sqlite3`
 
 ### Custom paths:
 ```bash
-uv run python -m dphe_db_pipeline.loader.extract_100_patients <source_db> <target_db>
+uv run python -m dphe_db_pipeline.loader.tools.extract_100_patients <source_db> <target_db>
 ```
 
 Example:
 ```bash
-uv run python -m dphe_db_pipeline.loader.extract_100_patients deepphe/deepphe_sqlite_compressed my_sample_db
+uv run python -m dphe_db_pipeline.loader.tools.extract_100_patients output/databases/individual/deepphe.sqlite3 output/databases/individual/deepphe_100.sqlite3
 ```
 
 ## Output
@@ -70,7 +70,7 @@ The script provides progress updates:
 
 Example output:
 ```
-Opening source database: deepphe/deepphe_sqlite_compressed
+Opening source database: output/databases/individual/deepphe.sqlite3
 Pass 1: Identifying first 100 patient IDs...
 (Extracting from first part of filenames before underscore)
   Patient #1: 1000000001
@@ -94,7 +94,7 @@ Found 100 patients with 2543 total files
 First patient ID: 1000000001
 Last patient ID: 1000000100
 
-Creating target database: deepphe_100
+Creating target database: output/databases/individual/deepphe_100.sqlite3
 
 Copying 2543 files...
   Copied 1,000/2,543 files (15,234,567 bytes)
@@ -107,7 +107,7 @@ Extraction complete!
   Total data size: 156,789,012 bytes (149.56 MB)
   Database file size: 78,456,123 bytes (74.82 MB)
 
-New database created: deepphe_100
+New database created: output/databases/individual/deepphe_100.sqlite3
 ```
 
 ## Verifying the Results
@@ -116,22 +116,22 @@ After extraction, you can verify the new database:
 
 ### Count files:
 ```bash
-uv run python -m dphe_db_pipeline.loader.query_sqlite count deepphe_100
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite count output/databases/individual/deepphe_100.sqlite3
 ```
 
 ### List files:
 ```bash
-uv run python -m dphe_db_pipeline.loader.query_sqlite list deepphe_100 --limit 20
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite list output/databases/individual/deepphe_100.sqlite3 --limit 20
 ```
 
 ### Query specific patient:
 ```bash
-uv run python -m dphe_db_pipeline.loader.query_sqlite prefix deepphe_100 "{patient_id}_"
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite prefix output/databases/individual/deepphe_100.sqlite3 "{patient_id}_"
 ```
 
 ### Get a specific file:
 ```bash
-uv run python -m dphe_db_pipeline.loader.query_sqlite get deepphe_100 "{filename}"
+uv run python -m dphe_db_pipeline.loader.tools.query_sqlite get output/databases/individual/deepphe_100.sqlite3 "{filename}"
 ```
 
 ## Database Schema
@@ -167,7 +167,7 @@ CREATE TABLE files (
 
 - Python 3.13+
 - SQLite3 (built into Python)
-- Source database must exist: `deepphe/deepphe_sqlite_compressed`
+- Source database must exist: `output/databases/individual/deepphe.sqlite3`
 
 ## Error Handling
 

@@ -18,7 +18,7 @@ from pathlib import Path
 
 def get_default_db_path() -> Path:
     """Return the default absolute path to the DeepPhe OMOP SQLite database."""
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[4]
     return repo_root / "output" / "databases" / "individual" / "omop.sqlite3"
 
 
@@ -114,7 +114,7 @@ def main() -> None:
         print("No patient records found in CALCULATED_PATIENT_DATA.")
         return
 
-    base_dir = Path(__file__).resolve().parents[3] / "output" / "extraction" / "data"
+    base_dir = Path(__file__).resolve().parents[4] / "output" / "extraction" / "data"
 
     gender_groups = group_patients_by_field(patients, "GENDER")
     race_groups = group_patients_by_field(patients, "RACE")
@@ -136,4 +136,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
