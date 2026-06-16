@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import multiprocessing as mp
 import os
 import re
@@ -21,8 +22,11 @@ from .source.config_processor import (
 )
 from .source.json_demographics_processor import run_json_import
 
-# Load environment variables from .env file
+# Load environment variables from .env file (used as a fallback when explicit
+# overrides are not threaded in by the caller).
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Valid source types
@@ -55,7 +59,7 @@ def load_tasks_config(config_path: str | Path) -> dict:
 
 
 def print_env_instructions():
-    """Print instructions for creating a valid .env file."""
+    """Log instructions for creating a valid .env file."""
     instructions = (
         "Please create a .env file in your project root with the following content:\n\n"
         "# Ingestion source: csv | mysql | json\n"
@@ -74,7 +78,7 @@ def print_env_instructions():
         "MYSQL_DATABASE=<your_mysql_database>\n\n"
         "Replace the placeholders with your actual configuration."
     )
-    print(instructions)
+    logger.info(instructions)
 
 
 def check_env():
@@ -99,7 +103,7 @@ def check_env():
     """
     env_file = ".env"
     if not os.path.exists(env_file):
-        print("Error: .env file not found.")
+        logger.error(".env file not found.")
         print_env_instructions()
         return False
 
@@ -109,25 +113,29 @@ def check_env():
     always_required = {"SOURCE_TYPE", "SQLITE_DB_PATH"}
     missing = [f for f in always_required if not env_values.get(f)]
     if missing:
-        print(f"Error: Missing required fields: {', '.join(missing)}")
+        logger.error("Missing required fields: %s", ', '.join(missing))
         print_env_instructions()
         return False
 
     source_type = env_values.get("SOURCE_TYPE", "").lower()
     if source_type not in VALID_SOURCE_TYPES:
-        print(f"Error: Invalid SOURCE_TYPE '{source_type}'. Must be one of: {', '.join(VALID_SOURCE_TYPES)}")
+        logger.error(
+            "Invalid SOURCE_TYPE '%s'. Must be one of: %s",
+            source_type,
+            ', '.join(VALID_SOURCE_TYPES),
+        )
         print_env_instructions()
         return False
 
     # CSV mode needs SOURCE_DIR
     if source_type == 'csv' and not env_values.get("SOURCE_DIR"):
-        print("Error: SOURCE_DIR is required when SOURCE_TYPE is 'csv'.")
+        logger.error("SOURCE_DIR is required when SOURCE_TYPE is 'csv'.")
         print_env_instructions()
         return False
 
     # JSON mode needs a JSON source path
     if source_type == 'json' and not env_values.get("JSON_SOURCE_PATH"):
-        print("Error: JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
+        logger.error("JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
         print_env_instructions()
         return False
 
@@ -136,43 +144,52 @@ def check_env():
         mysql_fields = {"MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"}
         missing_mysql = [f for f in mysql_fields if not env_values.get(f)]
         if missing_mysql:
-            print(f"Error: Missing MySQL source fields: {', '.join(missing_mysql)}")
+            logger.error("Missing MySQL source fields: %s", ', '.join(missing_mysql))
             print_env_instructions()
             return False
 
-    print("All required fields are present in the .env file.")
+    logger.info("All required fields are present in the .env file.")
     return True
 
 
-def load_config() -> dict:
+def load_config(
+    *,
+    source_type: str | None = None,
+    sqlite_db_path: str | Path | None = None,
+    json_source_path: str | Path | None = None,
+) -> dict:
     """
-    Load configuration from environment variables.
+    Build the importer configuration from explicit overrides, falling back to env vars.
 
     The destination is always SQLite; SOURCE_TYPE controls where data is read from.
+    Any argument left as None is resolved from the environment (.env / os.environ),
+    so the standalone CLI keeps working while the pipeline threads config in directly.
 
     Returns:
         dict: Configuration values.
     """
-    source_type = os.getenv('SOURCE_TYPE', 'csv').lower()
+    source_type = (source_type or os.getenv('SOURCE_TYPE') or 'csv').lower()
     if source_type not in VALID_SOURCE_TYPES:
         raise ValueError(
             f"Invalid SOURCE_TYPE '{source_type}'. Must be one of: {', '.join(VALID_SOURCE_TYPES)}. "
-            "Please check your .env file."
+            "Please check your configuration."
         )
 
+    resolved_sqlite = str(sqlite_db_path) if sqlite_db_path else os.getenv('SQLITE_DB_PATH', '')
     config: dict = {
         'SOURCE_TYPE': source_type,
-        'SQLITE_DB_PATH': os.getenv('SQLITE_DB_PATH', ''),
+        'SQLITE_DB_PATH': resolved_sqlite,
     }
 
     if not config['SQLITE_DB_PATH']:
-        raise ValueError("SQLITE_DB_PATH is required in your .env file.")
+        raise ValueError("SQLITE_DB_PATH is required (pass sqlite_db_path or set it in .env).")
 
     if source_type in ('csv', 'json'):
         config['SOURCE_DIR'] = os.getenv('SOURCE_DIR', '')
 
     if source_type == 'json':
-        config['JSON_SOURCE_PATH'] = os.getenv('JSON_SOURCE_PATH', '')
+        resolved_json = str(json_source_path) if json_source_path else os.getenv('JSON_SOURCE_PATH', '')
+        config['JSON_SOURCE_PATH'] = resolved_json
         if not config['JSON_SOURCE_PATH']:
             raise ValueError("JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
 
@@ -197,22 +214,41 @@ def _open_sqlite(db_path: str) -> sqlite3.Connection:
 
 def process_file_worker(csv_path, config, batch_size=50000):
     """Worker function for multiprocessing CSV import — always writes to SQLite."""
+    # Workers may run in spawned processes that do not inherit the parent's
+    # logging handlers; configure a handler here if none exists (idempotent).
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO)
+    conn = None
+    cursor = None
     try:
         conn = _open_sqlite(config['SQLITE_DB_PATH'])
         cursor = conn.cursor()
         process_csv_file(cursor, conn, csv_path, batch_size=batch_size)
-        cursor.close()
-        conn.close()
-        print(f"Completed processing {os.path.basename(csv_path)}")
+        logger.info("Completed processing %s", os.path.basename(csv_path))
+        return csv_path, True, ""
     except Exception as e:
-        print(f"Error processing {os.path.basename(csv_path)}: {e}")
+        message = f"Error processing {os.path.basename(csv_path)}: {e}"
+        logger.error(message)
+        return csv_path, False, message
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
 
 
 def run_csv_import(csv_files, config):
     """Import CSV files into SQLite using a multiprocessing pool."""
-    with mp.Pool(processes=1) as pool:
+    with mp.Pool(processes=2) as pool:
         worker_func = partial(process_file_worker, config=config, batch_size=5000)
-        pool.map(worker_func, csv_files)
+        results = pool.map(worker_func, csv_files)
+
+    failures = [message for _path, success, message in results if not success]
+    if failures:
+        raise RuntimeError(
+            "CSV import failed for "
+            f"{len(failures)} file(s): " + "; ".join(failures)
+        )
 
 
 def run_mysql_source_import(config, sqlite_cursor, sqlite_conn):
@@ -229,7 +265,7 @@ def run_mysql_source_import(config, sqlite_cursor, sqlite_conn):
             "mysql-connector-python is required for SOURCE_TYPE=mysql. Run: uv sync"
         ) from exc
 
-    print("Connecting to MySQL source (read-only)...")
+    logger.info("Connecting to MySQL source (read-only)...")
     mysql_conn = mysql.connector.connect(
         host=config['MYSQL_HOST'],
         port=int(config['MYSQL_PORT']),
@@ -243,10 +279,10 @@ def run_mysql_source_import(config, sqlite_cursor, sqlite_conn):
         # List all tables in the source MySQL database
         mysql_cursor.execute("SHOW TABLES;")
         tables = [row[0] for row in mysql_cursor.fetchall()]
-        print(f"Found {len(tables)} tables in MySQL source: {tables}")
+        logger.info("Found %d tables in MySQL source: %s", len(tables), tables)
 
         for table_name in tables:
-            print(f"Importing MySQL source table: {table_name}")
+            logger.info("Importing MySQL source table: %s", table_name)
             mysql_cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 0;")
             columns = [desc[0] for desc in mysql_cursor.description]
 
@@ -272,14 +308,14 @@ def run_mysql_source_import(config, sqlite_cursor, sqlite_conn):
                 sqlite_cursor.executemany(insert_sql, batch)
                 sqlite_conn.commit()
                 total += len(batch)
-                print(f"  {total} rows inserted into {table_name}")
+                logger.info("  %d rows inserted into %s", total, table_name)
 
-            print(f"Done importing {table_name}: {total} total rows.")
+            logger.info("Done importing %s: %d total rows.", table_name, total)
 
         mysql_cursor.close()
     finally:
         mysql_conn.close()
-        print("MySQL source connection closed.")
+        logger.info("MySQL source connection closed.")
 
 
 def run_omop_import(
@@ -289,30 +325,22 @@ def run_omop_import(
     sqlite_db_path: str | Path | None = None,
     json_source_path: str | Path | None = None,
 ) -> None:
-    """Run the OMOP importer with optional runtime overrides."""
-    config_path = Path(config_path)
-    env_overrides = {}
-    if source_type:
-        env_overrides["SOURCE_TYPE"] = source_type
-    if sqlite_db_path:
-        env_overrides["SQLITE_DB_PATH"] = str(sqlite_db_path)
-    if json_source_path:
-        env_overrides["JSON_SOURCE_PATH"] = str(json_source_path)
-
-    old_env = {key: os.environ.get(key) for key in env_overrides}
-    os.environ.update(env_overrides)
-
-    try:
-        _run_omop_import(config_path, source_type=source_type)
-    finally:
-        for key, old_value in old_env.items():
-            if old_value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = old_value
+    """Run the OMOP importer with optional runtime overrides threaded in directly."""
+    _run_omop_import(
+        Path(config_path),
+        source_type=source_type,
+        sqlite_db_path=sqlite_db_path,
+        json_source_path=json_source_path,
+    )
 
 
-def _run_omop_import(config_path: Path, source_type: str | None = None) -> None:
+def _run_omop_import(
+    config_path: Path,
+    *,
+    source_type: str | None = None,
+    sqlite_db_path: str | Path | None = None,
+    json_source_path: str | Path | None = None,
+) -> None:
     tasks_config = load_tasks_config(config_path)
 
     # Resolve lookup_tables_dir relative to the config file so it works from any CWD
@@ -321,20 +349,20 @@ def _run_omop_import(config_path: Path, source_type: str | None = None) -> None:
     if lookup_cfg and not Path(lookup_cfg.get("lookup_tables_dir", "")).is_absolute():
         lookup_cfg["lookup_tables_dir"] = str(config_dir / lookup_cfg["lookup_tables_dir"])
 
-    config = load_config()
+    config = load_config(
+        source_type=source_type,
+        sqlite_db_path=sqlite_db_path,
+        json_source_path=json_source_path,
+    )
 
     # Ensure the SQLite output directory exists
-    sqlite_path = os.getenv('SQLITE_DB_PATH', '')
+    sqlite_path = config['SQLITE_DB_PATH']
     if sqlite_path:
         os.makedirs(os.path.dirname(os.path.abspath(sqlite_path)), exist_ok=True)
 
-    # CLI override takes precedence over .env
-    if source_type:
-        config['SOURCE_TYPE'] = source_type
-
     source_type = config['SOURCE_TYPE']
-    print(f"SOURCE_TYPE: {source_type}")
-    print(f"SQLITE_DB_PATH: {config['SQLITE_DB_PATH']}")
+    logger.info("SOURCE_TYPE: %s", source_type)
+    logger.info("SQLITE_DB_PATH: %s", config['SQLITE_DB_PATH'])
 
     # ---------------------------------------------------------------------------
     # Destination connections — always SQLite
@@ -362,22 +390,22 @@ def _run_omop_import(config_path: Path, source_type: str | None = None) -> None:
             for f in os.listdir(source_dir)
             if f.lower().endswith('.csv')
         ]
-        print(f"Found {len(csv_files)} CSV files — importing into SQLite...")
+        logger.info("Found %d CSV files — importing into SQLite...", len(csv_files))
         run_csv_import(csv_files, config)
-        print("CSV import complete.")
+        logger.info("CSV import complete.")
 
     elif source_type == 'mysql':
         run_mysql_source_import(config, omop_cursor, omop_conn)
-        print("MySQL source import complete.")
+        logger.info("MySQL source import complete.")
 
     elif source_type == 'json':
         json_path = config.get('JSON_SOURCE_PATH', '')
-        print(f"JSON ingestion mode enabled — source: {json_path}")
+        logger.info("JSON ingestion mode enabled — source: %s", json_path)
 
     # ---------------------------------------------------------------------------
     # Pipeline steps — always run against SQLite destination
     # ---------------------------------------------------------------------------
-    print("\nDropping calculated tables for fresh rebuild...")
+    logger.info("Dropping calculated tables for fresh rebuild...")
     drop_table(cursors['lookup'], conns['lookup'], "calculated_dx_data", True)
     drop_table(cursors['lookup'], conns['lookup'], "calculated_pt_icd_codes", True)
     drop_table(cursors['lookup'], conns['lookup'], "calculated_patient_data", True)
@@ -392,7 +420,7 @@ def _run_omop_import(config_path: Path, source_type: str | None = None) -> None:
         add_indexes_after_update(cursors, tasks_config, conns)
         process_translation(cursors, conns, tasks_config)
     else:
-        print("Skipping source-table-dependent pipeline steps in JSON mode.")
+        logger.info("Skipping source-table-dependent pipeline steps in JSON mode.")
         run_json_import(config['JSON_SOURCE_PATH'], lookup_conn, lookup_cursor)
 
     # ---------------------------------------------------------------------------
@@ -403,10 +431,15 @@ def _run_omop_import(config_path: Path, source_type: str | None = None) -> None:
     for conn in conns.values():
         conn.close()
 
-    print("\nPipeline complete.")
+    logger.info("Pipeline complete.")
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)-8s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     parser = argparse.ArgumentParser(
         description="OMOP data importer - destination is always SQLite."
     )
@@ -427,7 +460,7 @@ def main():
     try:
         run_omop_import(args.omop_config, source_type=args.source_type)
     except Exception as exc:
-        print(f"Error: {exc}")
+        logger.error("Error: %s", exc)
         return 1
     return 0
 

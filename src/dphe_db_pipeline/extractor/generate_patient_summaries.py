@@ -233,7 +233,7 @@ def main() -> int:
         return 1
 
     written = generate_patient_summaries(db_path, output_path)
-    return 0 if written >= 0 else 1
+    return 0 if written > 0 else 1
 
 
 if __name__ == "__main__":

@@ -47,6 +47,7 @@ def _run_loader(
     input_zip: Path | None,
     input_zipdir: Path | None,
     compressed_db: Path,
+    max_error_fraction: float,
 ) -> None:
     logger.info("=" * 60)
     logger.info("STAGE 1 - Loader: building compressed DeepPhe SQLite DB")
@@ -64,10 +65,25 @@ def _run_loader(
             raise ValueError("Stage 1 requires an input directory, zip file, or zip directory.")
         loaded, errors = load_files_to_db(str(input_dir), str(compressed_db))
 
-    if errors:
-        raise RuntimeError(f"Stage 1 completed with {errors} file loading error(s).")
     if loaded == 0:
         raise RuntimeError("Stage 1 did not load any files.")
+
+    if errors:
+        total = loaded + errors
+        error_fraction = errors / total
+        logger.warning(
+            "Stage 1 loaded %d file(s) with %d error(s) (%.1f%% of %d).",
+            loaded,
+            errors,
+            error_fraction * 100,
+            total,
+        )
+        if error_fraction > max_error_fraction:
+            raise RuntimeError(
+                f"Stage 1 error rate {error_fraction:.1%} exceeds the allowed maximum of "
+                f"{max_error_fraction:.1%} ({errors} of {total} file(s) failed). "
+                "Raise --max-load-error-fraction to tolerate more errors."
+            )
 
     logger.info("Stage 1 complete: loaded %d file(s).", loaded)
 
@@ -230,6 +246,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Pass --skip-clean to Stage 3 (do not delete existing extracted CSVs).",
     )
+    parser.add_argument(
+        "--max-load-error-fraction",
+        type=float,
+        default=0.25,
+        metavar="FRACTION",
+        help=(
+            "Maximum fraction of Stage 1 files that may fail to load before the stage is "
+            "treated as failed (default: 0.25). Use 0 to fail on any error, 1 to ignore "
+            "errors as long as at least one file loads."
+        ),
+    )
     return parser
 
 
@@ -289,6 +316,7 @@ def main() -> int:
                 input_zip=args.input_zip.resolve() if args.input_zip else None,
                 input_zipdir=args.input_zipdir.resolve() if args.input_zipdir else None,
                 compressed_db=compressed_db,
+                max_error_fraction=args.max_load_error_fraction,
             )
             if args.only_loader:
                 logger.info("PIPELINE COMPLETE (Stage 1 only)")

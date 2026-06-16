@@ -380,7 +380,12 @@ class DatabaseImporter:
                 'concepts_by_group',
                 'attributes_by_group',
                 'cancers_by_group',
-                'tumors_by_group'
+                'tumors_by_group',
+                'omop_age_at_dx',
+                'omop_gender',
+                'omop_race',
+                'omop_ethnicity',
+                'omop_cancers',
             ]
 
             logger.info("Dropping existing tables...")

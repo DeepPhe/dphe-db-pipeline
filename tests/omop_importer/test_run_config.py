@@ -130,6 +130,24 @@ class RunConfigTests(unittest.TestCase):
         self.assertEqual(str(journal_mode).lower(), "wal")
         self.assertEqual(busy_timeout, 30000)
 
+    def test_run_csv_import_raises_when_worker_reports_failure(self) -> None:
+        class FakePool:
+            def __init__(self, processes: int) -> None:
+                self.processes = processes
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def map(self, worker_func, csv_files):
+                return [(csv_files[0], False, "Error processing bad.csv: boom")]
+
+        with patch("dphe_db_pipeline.omop_importer.run.mp.Pool", FakePool):
+            with self.assertRaisesRegex(RuntimeError, "CSV import failed"):
+                run.run_csv_import(["bad.csv"], {"SQLITE_DB_PATH": "unused.sqlite3"})
+
     def test_main_json_mode_calls_json_import_and_skips_source_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_path = os.path.join(tmp_dir, "omop-config.js")
@@ -174,5 +192,4 @@ class RunConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 

@@ -6,6 +6,8 @@ Value: file content (as bytes), optionally compressed
 """
 
 import argparse
+import logging
+import os
 import sqlite3
 import sys
 from functools import partial
@@ -14,6 +16,8 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from dphe_db_pipeline.loader.compression import build_compressor, maybe_compress
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_schema(conn: sqlite3.Connection):
@@ -52,6 +56,11 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
     Returns:
         tuple: (loaded_count, error_count, total_bytes, zip_name)
     """
+    # Workers may run in spawned processes that do not inherit the parent's
+    # logging handlers; configure a handler here if none exists (idempotent).
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO)
+
     loaded_count = 0
     error_count = 0
     total_bytes = 0
@@ -81,7 +90,7 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                     total_bytes += len(value)
 
                 except Exception as e:
-                    print(f"  Error loading {file_name} from {zip_path.name}: {e}", file=sys.stderr)
+                    logger.error("Error loading %s from %s: %s", file_name, zip_path.name, e)
                     error_count += 1
 
         # Acquire lock before database write (serializes writes across all processes)
@@ -107,10 +116,10 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                 # Commit transaction for this zip
                 conn.commit()
 
-                print(f"  Processed and inserted {loaded_count} files from {zip_path.name}")
+                logger.info("Processed and inserted %d files from %s", loaded_count, zip_path.name)
 
             except Exception as e:
-                print(f"Error writing to database for {zip_path}: {e}", file=sys.stderr)
+                logger.error("Error writing to database for %s: %s", zip_path, e)
                 error_count += loaded_count  # Count all files as errors
                 loaded_count = 0
                 try:
@@ -121,7 +130,7 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                 conn.close()
 
     except Exception as e:
-        print(f"Error processing zip file {zip_path}: {e}", file=sys.stderr)
+        logger.error("Error processing zip file %s: %s", zip_path, e)
         error_count += 1
 
     return loaded_count, error_count, total_bytes, str(zip_path)
@@ -133,7 +142,7 @@ def load_files_to_db(
     recursive: bool = True,
     zip_file: str | None = None,
     zipdir: str | None = None,
-    num_processes: int = 12,
+    num_processes: int | None = None,
     compress: str = 'zstd',
     level: int = 1,
     min_compress_bytes: int = 512,
@@ -148,7 +157,8 @@ def load_files_to_db(
         recursive: Whether to recursively scan subdirectories (default: True)
         zip_file: Path to zip file containing files to load (optional)
         zipdir: Path to directory containing zip files to process recursively (optional)
-        num_processes: Number of parallel processes to use for zip processing (default: 12)
+        num_processes: Number of parallel processes to use for zip processing
+            (default: number of available CPUs)
         compress: Compression algorithm: zstd, lz4, none
         level: Compression level for the chosen algorithm
         min_compress_bytes: Only attempt to compress if content >= this many bytes
@@ -163,12 +173,12 @@ def load_files_to_db(
     # Ensure schema
     _ensure_schema(conn)
 
-    # Performance optimizations
+    # Performance optimizations (sized to be helpful without being greedy on small hosts)
     cursor.execute('PRAGMA journal_mode = WAL')  # Write-Ahead Logging for better concurrency
     cursor.execute('PRAGMA synchronous = NORMAL')  # Balance between speed and safety
-    cursor.execute('PRAGMA cache_size = -512000')  # 512MB cache (negative = KB)
+    cursor.execute('PRAGMA cache_size = -65536')  # 64MB cache (negative = KB)
     cursor.execute('PRAGMA temp_store = MEMORY')  # Use memory for temp storage
-    cursor.execute('PRAGMA mmap_size = 2147483648')  # 2GB memory-mapped I/O
+    cursor.execute('PRAGMA mmap_size = 268435456')  # 256MB memory-mapped I/O
 
     # Begin transaction for bulk insert (will be committed later)
     conn.execute('BEGIN TRANSACTION')
@@ -191,10 +201,13 @@ def load_files_to_db(
         if not zipdir_path.is_dir():
             raise ValueError(f"Zip directory path is not a directory: {zipdir}")
 
+        # Resolve worker count from the host's CPU budget when not specified
+        workers = num_processes if num_processes and num_processes > 0 else (os.cpu_count() or 4)
+
         # Find all zip files recursively
         zip_files = list(zipdir_path.rglob('*.zip'))
-        print(f"Found {len(zip_files)} zip files in {zipdir}")
-        print(f"Processing with {num_processes} parallel processes...")
+        logger.info("Found %d zip files in %s", len(zip_files), zipdir)
+        logger.info("Processing with %d parallel processes...", workers)
 
         # Create a lock for serializing database writes
         manager = Manager()
@@ -210,18 +223,18 @@ def load_files_to_db(
             min_compress_bytes=min_compress_bytes,
         )
 
-        with Pool(processes=num_processes) as pool:
+        with Pool(processes=workers) as pool:
             results = pool.map(process_func, zip_files)
 
         # Aggregate results (files already written to database by workers)
-        print("\nAggregating results...")
+        logger.info("Aggregating results...")
         for zip_loaded, zip_errors, zip_bytes, _zip_name in results:
             loaded_count += zip_loaded
             error_count += zip_errors
             total_bytes += zip_bytes
 
         total_files = loaded_count
-        print(f"All zip files processed. Total: {loaded_count} files inserted.")
+        logger.info("All zip files processed. Total: %d files inserted.", loaded_count)
 
 
     elif zip_file:
@@ -230,13 +243,13 @@ def load_files_to_db(
         if not zip_path.exists():
             raise ValueError(f"Zip file does not exist: {zip_file}")
 
-        print(f"Loading files from zip: {zip_file}")
+        logger.info("Loading files from zip: %s", zip_file)
 
         with ZipFile(zip_path, 'r') as zf:
             # Get list of files in zip (exclude directories)
             file_list = [name for name in zf.namelist() if not name.endswith('/')]
             total_files = len(file_list)
-            print(f"Found {total_files} files in zip")
+            logger.info("Found %d files in zip", total_files)
 
             for file_name in file_list:
                 try:
@@ -256,10 +269,10 @@ def load_files_to_db(
                     total_bytes += len(value)
 
                     if loaded_count % 100 == 0:
-                        print(f"Loaded {loaded_count}/{total_files} files...")
+                        logger.info("Loaded %d/%d files...", loaded_count, total_files)
 
                 except Exception as e:
-                    print(f"Error loading {file_name}: {e}", file=sys.stderr)
+                    logger.error("Error loading %s: %s", file_name, e)
                     error_count += 1
 
         conn.commit()
@@ -280,7 +293,7 @@ def load_files_to_db(
             files = [f for f in input_path.glob('*') if f.is_file()]
 
         total_files = len(files)
-        print(f"Found {total_files} files to load")
+        logger.info("Found %d files to load", total_files)
 
         for file_path in files:
             try:
@@ -305,10 +318,10 @@ def load_files_to_db(
                 total_bytes += len(value)
 
                 if loaded_count % 100 == 0:
-                    print(f"Loaded {loaded_count}/{total_files} files...")
+                    logger.info("Loaded %d/%d files...", loaded_count, total_files)
 
             except Exception as e:
-                print(f"Error loading {file_path}: {e}", file=sys.stderr)
+                logger.error("Error loading %s: %s", file_path, e)
                 error_count += 1
 
     # Commit transaction and close database
@@ -316,23 +329,28 @@ def load_files_to_db(
 
     # Optionally VACUUM to shrink file on disk
     if vacuum:
-        print("Running VACUUM to compact the database file (this may take a while)...")
+        logger.info("Running VACUUM to compact the database file (this may take a while)...")
         conn.execute('VACUUM')
         conn.commit()
 
     conn.close()
 
-    print("\n=== Summary ===")
-    print(f"Total files found: {total_files}")
-    print(f"Successfully loaded: {loaded_count}")
-    print(f"Errors: {error_count}")
-    print(f"Total bytes loaded (raw): {total_bytes:,}")
-    print(f"Database location: {db_path}")
+    logger.info("=== Summary ===")
+    logger.info("Total files found: %d", total_files)
+    logger.info("Successfully loaded: %d", loaded_count)
+    logger.info("Errors: %d", error_count)
+    logger.info("Total bytes loaded (raw): %s", f"{total_bytes:,}")
+    logger.info("Database location: %s", db_path)
 
     return loaded_count, error_count
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)-8s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     parser = argparse.ArgumentParser(
         description="Load files from a directory or zip file into SQLite database",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -391,8 +409,8 @@ Examples:
         '--processes',
         dest='num_processes',
         type=int,
-        default=12,
-        help='Number of parallel processes when using --zipdir (default: 12)'
+        default=None,
+        help='Number of parallel processes when using --zipdir (default: number of CPUs)'
     )
 
     parser.add_argument(
@@ -440,7 +458,7 @@ Examples:
             vacuum=args.vacuum,
         )
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.error("Error: %s", e)
         sys.exit(1)
 
 

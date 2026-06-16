@@ -11,7 +11,6 @@ from ..db.utils.column_ops import (
 )
 from ..db.utils.csv_ops import process_a_csv_file
 from ..db.utils.indexing_ops import add_index, loop_indexes
-from ..db.utils.query_utils import execute_query
 
 
 def process_csv_file(cursor, conn, csv_path, batch_size=5000):
@@ -136,90 +135,5 @@ def create_columns(cursors, conns, config):
 
 
 def process_operation(cursor, conn, config):
-    # if config["operation"]["type"] == 'AGE_AT':
-    #     process_age_at_operation(cursor, conn, config)
-    # if config["operation"]["type"] == 'ICD10':
-    #     #process_icd10_operation(cursor, conn, config["operation"])
-    #     # create_icd_lookup_table(cursor, conn, icd10=True)
-
-    # if config["operation"]["type"] == 'ICD9':
-    #     # create_icd_lookup_table(cursor, conn, icd9=True)
-    #     process_icd9_operation(cursor, conn, config["operation"])
     process_icd_operation(cursor, conn, config)
     update_calculated_dx_data(cursor, conn)
-
-
-def process_age_at_operation(cursor, conn, config):
-    """
-    Process an AGE_AT operation from the config and generate/execute the appropriate SQL.
-
-    This creates a query to calculate age difference between a birth date and
-    the earliest/latest condition date from multiple potential sources.
-    """
-    destination_table = config['destination_table']
-    destination_column = config['destination_column']
-    join_on = config['join_on']
-    operation = config['operation']
-
-    # Get birth date information
-    birth_column = operation['birth_column']
-    birth_column_type = operation.get('birth_column_type', 'TEXT')
-    rule = operation['rule']  # USE_EARLIEST or USE_LATEST
-    age_at_columns = operation['age_at_columns']
-
-    # Build the SQL components
-    joins = []
-    condition_dates = []
-    where_clauses = []
-
-    # Create table aliases to avoid name conflicts
-    for i, col_config in enumerate(age_at_columns):
-        table = col_config['table']
-        alias = f"t{i}"
-        column = col_config['column']
-        datatype = col_config.get('datatype', 'DATE')
-
-        # Build the join clause
-        join_clause = f"JOIN {table} {alias} ON d.{join_on} = {alias}.{join_on}"
-        joins.append(join_clause)
-
-        # Add the condition date (with CAST if needed)
-        cast_column = f"CAST({alias}.{column} AS DATE)" if datatype != 'DATE' else f"{alias}.{column}"
-        condition_dates.append(cast_column)
-
-        # Add any restrictions to the where clause
-        if 'restrictions' in col_config:
-            if 'has_values' in col_config['restrictions']:
-                # Handle the case with a list of values
-                column_name = col_config['restrictions']['column']
-                values_list = col_config['restrictions']['has_values']
-                values_str = ', '.join(str(v) for v in values_list)
-                where_clauses.append(f"{alias}.{column_name} IN ({values_str})")
-            else:
-                # Handle the simple key-value pair case
-                for field, value in col_config['restrictions'].items():
-                    where_clauses.append(f"{alias}.{field} = '{value}'")
-
-    # Combine the condition dates with LEAST or GREATEST based on the rule
-    date_function = "LEAST" if rule == "USE_EARLIEST" else "GREATEST"
-    combined_dates = f"{date_function}({', '.join(condition_dates)})"
-
-    # Build the complete query
-    if birth_column_type != 'DATE':
-        birth_date = f"CAST(d.{birth_column} AS DATE)"
-    else:
-        birth_date = f"d.{birth_column}"
-
-    query = f"""
-    UPDATE {destination_table} d
-    {' '.join(joins)}
-    SET d.{destination_column} = TIMESTAMPDIFF(
-        YEAR,
-        {birth_date},
-        {combined_dates}
-    )
-    {'WHERE ' + ' AND '.join(where_clauses) if where_clauses else ''};
-    """
-
-    print(f"Executing AGE_AT operation for {destination_column}...")
-    execute_query(cursor, conn, query, commit=True)

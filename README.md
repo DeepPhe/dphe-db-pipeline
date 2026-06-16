@@ -4,14 +4,15 @@ DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, a
 
 ## Requirements
 
-- Python >=3.13
+- Python >=3.12
 - [uv](https://github.com/astral-sh/uv)
 
 ```bash
 uv sync
 ```
 
-Use `uv sync --all-extras` when you need development tools or MySQL ingestion support.
+Development tools (`pytest`, `mypy`, `ruff`) are in the default dependency group and are
+installed by `uv sync`. Use `uv sync --extra mysql` when you need MySQL ingestion support.
 
 ## Quickstart
 
@@ -97,8 +98,8 @@ src/dphe_db_pipeline/
 ├── loader/            # Stage 1
 ├── omop_importer/     # Stage 2
 ├── extractor/         # Stage 3
-├── resources/example/ # Bundled reproducible example data
-└── utils/
+├── analysis/          # Analysis/reporting helpers
+└── resources/example/ # Bundled reproducible example data
 ```
 
 Tests live in `tests/`. Generated databases and extracted files live under `output/` in the current working directory and are gitignored.
