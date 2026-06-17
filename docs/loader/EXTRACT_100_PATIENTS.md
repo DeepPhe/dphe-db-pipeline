@@ -165,7 +165,7 @@ CREATE TABLE files (
 
 ## Requirements
 
-- Python 3.13+
+- Python >=3.12
 - SQLite3 (built into Python)
 - Source database must exist: `output/databases/individual/deepphe.sqlite3`
 

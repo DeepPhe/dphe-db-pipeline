@@ -49,11 +49,11 @@ Common causes:
 Checks:
 
 ```bash
-sqlite3 output/databases/jsontest.sqlite3 "SELECT COUNT(*) FROM CALCULATED_PATIENT_DATA;"
+sqlite3 output/databases/individual/omop.sqlite3 "SELECT COUNT(*) FROM CALCULATED_PATIENT_DATA;"
 ```
 
 ```bash
-sqlite3 output/databases/jsontest.sqlite3 "SELECT COUNT(*) FROM CALCULATED_DX_DATA;"
+sqlite3 output/databases/individual/omop.sqlite3 "SELECT COUNT(*) FROM CALCULATED_DX_DATA;"
 ```
 
 ## Dates are missing in JSON mode
@@ -92,8 +92,8 @@ Fix:
 
 Recommended order:
 1. `README.md`
-2. `docs/architecture.md`
-3. `docs/config-reference.md`
-4. `run.py`
-5. `source/config_processor.py`
+2. `docs/importer/architecture.md`
+3. `docs/importer/config-reference.md`
+4. `omop_importer/run.py`
+5. `omop_importer/source/config_processor.py`
 

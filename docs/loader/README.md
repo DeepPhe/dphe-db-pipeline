@@ -31,11 +31,16 @@ uv run python -m dphe_db_pipeline.loader.load_to_sqlite /path/to/database --zipd
 
 ### Options
 
-- `db_path`: Path where the SQLite database will be created/opened (required)
-- `input_dir`: Directory containing files to load (optional, positional)
+- `input_dir`: Directory containing files to load (optional positional, default `.`; ignored if `--zip`/`--zipdir` is used)
+- `db_path`: Path where the SQLite database will be created/opened (required positional)
 - `--zip`: Path to a single zip file to load
 - `--zipdir`: Directory tree to scan for zip files; each zip's contents are added to the database
-- `--no-recursive`: Do not recursively scan subdirectories (optional)
+- `--no-recursive`: Do not recursively scan subdirectories (directory mode only)
+- `--processes`: Number of parallel worker processes when using `--zipdir` (default: number of CPUs)
+- `--compress`: Compression algorithm for content values — `zstd` (default), `lz4`, `none`/`raw`
+- `--level`: Compression level for the chosen algorithm (default: `1`)
+- `--min-compress-bytes`: Only compress values at least this many bytes (default: `512`)
+- `--vacuum`: Run `VACUUM` after loading to compact the database file
 
 ### Examples
 
@@ -62,7 +67,7 @@ uv run python -m dphe_db_pipeline.loader.load_to_sqlite ./mydb --zipdir /path/to
   - **Value** (`content`): Complete file content, optionally compressed (zstd or lz4)
   - **Encoding**: Tracks whether content is `raw`, `zstd`, or `lz4`
 - Files are stored in a SQLite database at the specified path
-- Twelve worker processes are used by default when loading from zip directories
+- When loading from a zip directory, one worker process per CPU is used by default (override with `--processes`)
 - A lock prevents concurrent writes so no data is lost
 
 ## Database Schema
