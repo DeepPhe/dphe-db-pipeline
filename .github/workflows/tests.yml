@@ -11,12 +11,14 @@ concurrency:
 
 jobs:
   pytest:
-    name: pytest (py${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: pytest (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Test the supported floor (3.12) and the dev pin (3.13).
+        # Verify install + tests on every supported OS ...
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # ... across the supported floor (3.12) and the dev pin (3.13).
         python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v5
@@ -32,6 +34,12 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+      # Confirms the install is usable end to end on this OS: the
+      # `dphe-pipeline` console script resolves, the bundled example data is
+      # packaged, and a default 3-stage run completes.
+      - name: Smoke-test the installed CLI
+        run: uv run dphe-pipeline
 
   lint:
     name: ruff + mypy

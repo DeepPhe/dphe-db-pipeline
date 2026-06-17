@@ -30,6 +30,10 @@ common CLI parameters for pointing the pipeline at your own data.
 | Stage 2 — OMOP importer | Import demographics/diagnosis data from JSON, CSV, or MySQL into OMOP-derived tables. | `output/databases/individual/omop.sqlite3` |
 | Stage 3 — Extractor | Build grouped concept CSVs and patient summaries from the Stage 1 and Stage 2 databases. | `output/extraction/data/` |
 
+"Extractor" here means DeepPhe concept/phenotype extraction (the final analytics step),
+not ETL-style extract-from-source — so it runs last, after the data is loaded and the OMOP
+tables are built.
+
 ## OMOP source modes
 
 Stage 2 reads demographics/diagnosis data from one of three sources, selected with
