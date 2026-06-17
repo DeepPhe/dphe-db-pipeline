@@ -297,9 +297,12 @@ def load_files_to_db(
 
         for file_path in files:
             try:
-                # Use relative path from input_dir as key
+                # Use relative path from input_dir as key. Normalize to
+                # forward slashes (as_posix) so keys are identical regardless
+                # of the OS that built the DB, and consistent with the
+                # forward-slash keys produced by the zip-loading paths.
                 relative_path = file_path.relative_to(input_path)
-                key = str(relative_path)
+                key = relative_path.as_posix()
 
                 # Read file content as value
                 with open(file_path, 'rb') as f:
