@@ -82,7 +82,8 @@ uv run dphe-pipeline \
 ```
 
 `csv` and `mysql` sources are configured with `.env`/environment variables rather than CLI
-flags — see [docs/importer/](docs/importer/).
+flags. Copy [`.env.example.importer`](.env.example.importer) to `.env` as a starting
+template, and see [docs/importer/](docs/importer/) for details.
 
 ### Choose output locations
 
