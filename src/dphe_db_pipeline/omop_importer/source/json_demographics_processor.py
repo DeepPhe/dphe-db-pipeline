@@ -1,9 +1,12 @@
 import json
+import logging
 import os
 import sqlite3
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 _UNKNOWN_VALUES = {"", "unknown", "unk", "na", "n/a", "none", "null"}
 _CANCER_MAP = {
@@ -249,10 +252,14 @@ def run_json_import(json_path: str, sqlite_conn: sqlite3.Connection, sqlite_curs
             dx_inserts += int(inserted)
             dx_updates += int(updated)
 
-    print(
+    logger.info(
         "JSON import complete. "
-        f"CALCULATED_PATIENT_DATA inserted={patient_inserts}, updated={patient_updates}; "
-        f"CALCULATED_DX_DATA inserted={dx_inserts}, updated={dx_updates}; "
-        f"skipped={skipped}"
+        "CALCULATED_PATIENT_DATA inserted=%d, updated=%d; "
+        "CALCULATED_DX_DATA inserted=%d, updated=%d; skipped=%d",
+        patient_inserts,
+        patient_updates,
+        dx_inserts,
+        dx_updates,
+        skipped,
     )
 

@@ -61,16 +61,31 @@ class RunConfigTests(unittest.TestCase):
         self.assertEqual(config["JSON_SOURCE_PATH"], "patients.json")
         self.assertEqual(config.get("SOURCE_DIR"), "")
 
-    def test_load_config_csv_allows_runtime_source_dir_override(self) -> None:
+    def test_load_config_csv_requires_source_dir(self) -> None:
+        # csv has no runtime SOURCE_DIR override path, so config validation must
+        # require it here -- the same rule check_env enforces (shared validator).
         with patch.dict(
             os.environ,
             {"SOURCE_TYPE": "csv", "SQLITE_DB_PATH": "test.sqlite3"},
             clear=True,
         ):
+            with self.assertRaisesRegex(ValueError, "SOURCE_DIR"):
+                run.load_config()
+
+    def test_load_config_csv_accepts_source_dir(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "SOURCE_TYPE": "csv",
+                "SQLITE_DB_PATH": "test.sqlite3",
+                "SOURCE_DIR": "/tmp/source",
+            },
+            clear=True,
+        ):
             config = run.load_config()
 
         self.assertEqual(config["SOURCE_TYPE"], "csv")
-        self.assertEqual(config["SOURCE_DIR"], "")
+        self.assertEqual(config["SOURCE_DIR"], "/tmp/source")
 
     def test_load_config_mysql_requires_all_connection_values(self) -> None:
         with patch.dict(

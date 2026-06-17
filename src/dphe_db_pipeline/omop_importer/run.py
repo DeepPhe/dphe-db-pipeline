@@ -5,6 +5,7 @@ import multiprocessing as mp
 import os
 import re
 import sqlite3
+from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 
@@ -81,22 +82,55 @@ def print_env_instructions():
     logger.info(instructions)
 
 
-def check_env():
+_MYSQL_FIELDS = ("MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE")
+
+
+def _validate_config_values(values: Mapping[str, str | None]) -> list[str]:
     """
-    Validate .env file contains required fields for the selected SOURCE_TYPE.
+    Validate a flat mapping of importer config values against the per-source rules.
+
+    Single source of truth shared by ``load_config`` (which raises) and ``check_env``
+    (which returns a bool). Returns a list of human-readable problems; empty == valid.
 
     Always required:
       - SOURCE_TYPE  (csv | mysql | json)
       - SQLITE_DB_PATH
 
-    SOURCE_TYPE=csv also requires:
-      - SOURCE_DIR
+    SOURCE_TYPE=csv also requires SOURCE_DIR; json requires JSON_SOURCE_PATH;
+    mysql requires all MYSQL_* connection fields.
+    """
+    problems: list[str] = []
 
-    SOURCE_TYPE=mysql also requires:
-      - MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+    source_type = (values.get("SOURCE_TYPE") or "").lower()
+    if not source_type:
+        problems.append("SOURCE_TYPE is required (csv | mysql | json).")
+    elif source_type not in VALID_SOURCE_TYPES:
+        problems.append(
+            f"Invalid SOURCE_TYPE '{source_type}'. Must be one of: {', '.join(VALID_SOURCE_TYPES)}."
+        )
 
-    SOURCE_TYPE=json also requires:
-      - JSON_SOURCE_PATH
+    if not values.get("SQLITE_DB_PATH"):
+        problems.append("SQLITE_DB_PATH is required.")
+
+    if source_type == "csv" and not values.get("SOURCE_DIR"):
+        problems.append("SOURCE_DIR is required when SOURCE_TYPE=csv.")
+
+    if source_type == "json" and not values.get("JSON_SOURCE_PATH"):
+        problems.append("JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
+
+    if source_type == "mysql":
+        missing = [key for key in _MYSQL_FIELDS if not values.get(key)]
+        if missing:
+            problems.append(f"Missing MySQL source fields: {', '.join(missing)}.")
+
+    return problems
+
+
+def check_env() -> bool:
+    """
+    Validate that a .env file in the CWD satisfies the rules for its SOURCE_TYPE.
+
+    Delegates to the shared validator so it can never drift from ``load_config``.
 
     Returns:
         bool: True if all required fields are present.
@@ -107,46 +141,12 @@ def check_env():
         print_env_instructions()
         return False
 
-    env_values = dotenv_values(env_file)
-
-    # Always required
-    always_required = {"SOURCE_TYPE", "SQLITE_DB_PATH"}
-    missing = [f for f in always_required if not env_values.get(f)]
-    if missing:
-        logger.error("Missing required fields: %s", ', '.join(missing))
+    problems = _validate_config_values(dotenv_values(env_file))
+    if problems:
+        for problem in problems:
+            logger.error("%s", problem)
         print_env_instructions()
         return False
-
-    source_type = env_values.get("SOURCE_TYPE", "").lower()
-    if source_type not in VALID_SOURCE_TYPES:
-        logger.error(
-            "Invalid SOURCE_TYPE '%s'. Must be one of: %s",
-            source_type,
-            ', '.join(VALID_SOURCE_TYPES),
-        )
-        print_env_instructions()
-        return False
-
-    # CSV mode needs SOURCE_DIR
-    if source_type == 'csv' and not env_values.get("SOURCE_DIR"):
-        logger.error("SOURCE_DIR is required when SOURCE_TYPE is 'csv'.")
-        print_env_instructions()
-        return False
-
-    # JSON mode needs a JSON source path
-    if source_type == 'json' and not env_values.get("JSON_SOURCE_PATH"):
-        logger.error("JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
-        print_env_instructions()
-        return False
-
-    # MySQL source needs connection details
-    if source_type == 'mysql':
-        mysql_fields = {"MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"}
-        missing_mysql = [f for f in mysql_fields if not env_values.get(f)]
-        if missing_mysql:
-            logger.error("Missing MySQL source fields: %s", ', '.join(missing_mysql))
-            print_env_instructions()
-            return False
 
     logger.info("All required fields are present in the .env file.")
     return True
@@ -164,41 +164,35 @@ def load_config(
     The destination is always SQLite; SOURCE_TYPE controls where data is read from.
     Any argument left as None is resolved from the environment (.env / os.environ),
     so the standalone CLI keeps working while the pipeline threads config in directly.
+    Validation uses the same rules as ``check_env`` via ``_validate_config_values``.
 
     Returns:
         dict: Configuration values.
     """
     source_type = (source_type or os.getenv('SOURCE_TYPE') or 'csv').lower()
-    if source_type not in VALID_SOURCE_TYPES:
-        raise ValueError(
-            f"Invalid SOURCE_TYPE '{source_type}'. Must be one of: {', '.join(VALID_SOURCE_TYPES)}. "
-            "Please check your configuration."
-        )
-
-    resolved_sqlite = str(sqlite_db_path) if sqlite_db_path else os.getenv('SQLITE_DB_PATH', '')
-    config: dict = {
+    values: dict[str, str | None] = {
         'SOURCE_TYPE': source_type,
-        'SQLITE_DB_PATH': resolved_sqlite,
+        'SQLITE_DB_PATH': str(sqlite_db_path) if sqlite_db_path else os.getenv('SQLITE_DB_PATH', ''),
+        'SOURCE_DIR': os.getenv('SOURCE_DIR', ''),
+        'JSON_SOURCE_PATH': str(json_source_path) if json_source_path else os.getenv('JSON_SOURCE_PATH', ''),
+        **{key: os.getenv(key, '') for key in _MYSQL_FIELDS},
     }
 
-    if not config['SQLITE_DB_PATH']:
-        raise ValueError("SQLITE_DB_PATH is required (pass sqlite_db_path or set it in .env).")
+    problems = _validate_config_values(values)
+    if problems:
+        raise ValueError(" ".join(problems) + " Please check your configuration.")
 
+    config: dict = {
+        'SOURCE_TYPE': source_type,
+        'SQLITE_DB_PATH': values['SQLITE_DB_PATH'],
+    }
     if source_type in ('csv', 'json'):
-        config['SOURCE_DIR'] = os.getenv('SOURCE_DIR', '')
-
+        config['SOURCE_DIR'] = values['SOURCE_DIR']
     if source_type == 'json':
-        resolved_json = str(json_source_path) if json_source_path else os.getenv('JSON_SOURCE_PATH', '')
-        config['JSON_SOURCE_PATH'] = resolved_json
-        if not config['JSON_SOURCE_PATH']:
-            raise ValueError("JSON_SOURCE_PATH is required when SOURCE_TYPE=json.")
-
+        config['JSON_SOURCE_PATH'] = values['JSON_SOURCE_PATH']
     if source_type == 'mysql':
-        for key in ('MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'):
-            config[key] = os.getenv(key, '')
-        missing = [k for k, v in config.items() if k.startswith('MYSQL_') and not v]
-        if missing:
-            raise ValueError(f"Missing MySQL source variables: {', '.join(missing)}")
+        for key in _MYSQL_FIELDS:
+            config[key] = values[key]
 
     return config
 
