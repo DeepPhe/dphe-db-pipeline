@@ -1,96 +1,41 @@
 # dphe-db-pipeline
 
-DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and extracting cancer concepts and patient summaries.
+DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and
+extracting cancer concepts and patient summaries.
 
-## Requirements
+## Getting started
 
-- Python >=3.12
-- [uv](https://github.com/astral-sh/uv)
+Requires Python >=3.12 and [uv](https://github.com/astral-sh/uv).
 
 ```bash
 uv sync
+uv run dphe-pipeline   # runs the bundled example end to end
 ```
 
-Development tools (`pytest`, `mypy`, `ruff`) are in the default dependency group and are
-installed by `uv sync`. Use `uv sync --extra mysql` when you need MySQL ingestion support.
+See [QUICKSTART.md](QUICKSTART.md) for installation details, the default run, and the
+common CLI parameters for pointing the pipeline at your own data.
 
-## Quickstart
-
-Run the bundled example data:
-
-```bash
-uv run dphe-pipeline
-```
-
-This uses:
-
-- DeepPhe example output: `src/dphe_db_pipeline/resources/example/dphe_output`
-- OMOP demographics JSON: `src/dphe_db_pipeline/resources/example/omop_data/patient_demographics.json`
-- OMOP importer config: `src/dphe_db_pipeline/omop_importer/omop-config.js`
-
-Default outputs, relative to the directory where you run the command:
-
-- DeepPhe SQLite DB: `output/databases/individual/deepphe.sqlite3`
-- OMOP SQLite DB: `output/databases/individual/omop.sqlite3`
-- Extraction output: `output/extraction/data/`
-
-## Pipeline Stages
+## Pipeline stages
 
 | Stage | Purpose | Default output |
 |---|---|---|
-| Stage 1 - Loader | Load raw DeepPhe JSON files, zip files, or zip directories into SQLite. | `output/databases/individual/deepphe.sqlite3` |
-| Stage 2 - OMOP Importer | Import demographics/diagnosis data from JSON, CSV, or MySQL into OMOP-derived tables. | `output/databases/individual/omop.sqlite3` |
-| Stage 3 - Extractor | Build grouped concept CSVs and patient summaries from the Stage 1 and Stage 2 databases. | `output/extraction/data/` |
+| Stage 1 — Loader | Load raw DeepPhe JSON files, zip files, or zip directories into SQLite. | `output/databases/individual/deepphe.sqlite3` |
+| Stage 2 — OMOP importer | Import demographics/diagnosis data from JSON, CSV, or MySQL into OMOP-derived tables. | `output/databases/individual/omop.sqlite3` |
+| Stage 3 — Extractor | Build grouped concept CSVs and patient summaries from the Stage 1 and Stage 2 databases. | `output/extraction/data/` |
 
-## Common Commands
+## OMOP source modes
 
-Run the full pipeline against a DeepPhe output directory:
+Stage 2 reads demographics/diagnosis data from one of three sources, selected with
+`--source-type`:
 
-```bash
-uv run dphe-pipeline \
-  --input-dir /path/to/deepphe/output \
-  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
-```
+- `json` — patient demographics JSON (used by the bundled example).
+- `csv` — source tables from a CSV directory.
+- `mysql` — read-only source tables copied from MySQL into SQLite.
 
-Run against one zip archive:
+`csv` and `mysql` are configured through `.env`/environment variables. See
+[docs/importer/](docs/importer/) for the importer runbook and configuration reference.
 
-```bash
-uv run dphe-pipeline \
-  --input-zip /path/to/deepphe-output.zip \
-  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
-```
-
-Run against a directory tree of zip archives:
-
-```bash
-uv run dphe-pipeline \
-  --input-zipdir /path/to/zips \
-  --omop-config src/dphe_db_pipeline/omop_importer/omop-config.js
-```
-
-Run only the extractor when both databases already exist:
-
-```bash
-uv run dphe-pipeline --skip-loader --skip-importer
-```
-
-Show all CLI options:
-
-```bash
-uv run dphe-pipeline --help
-```
-
-## OMOP Source Configuration
-
-Stage 2 supports three source modes:
-
-- `json`: patient demographics JSON, also used by the bundled example.
-- `csv`: source tables from a CSV directory.
-- `mysql`: read-only source tables copied from MySQL into SQLite.
-
-Use `--demographics /path/to/patient_demographics.json` for JSON mode, or set source variables in `.env`/environment for CSV and MySQL. See `docs/importer/` for the detailed importer runbook and configuration reference.
-
-## Project Layout
+## Project layout
 
 ```text
 src/dphe_db_pipeline/
@@ -102,7 +47,9 @@ src/dphe_db_pipeline/
 └── resources/example/ # Bundled reproducible example data
 ```
 
-Tests live in `tests/`. Generated databases and extracted files live under `output/` in the current working directory and are gitignored.
+Each stage keeps ad-hoc helper scripts under its own `tools/` subpackage. Tests live in
+`tests/`. Generated databases and extracted files live under `output/` in the current
+working directory and are gitignored.
 
 ## Development
 
@@ -114,7 +61,8 @@ uv run mypy src/dphe_db_pipeline
 
 ## Security
 
-Databases and extracted outputs may contain protected health information (PHI). They are gitignored and must not be committed.
+Databases and extracted outputs may contain protected health information (PHI). They are
+gitignored and must not be committed.
 
 ## License
 
