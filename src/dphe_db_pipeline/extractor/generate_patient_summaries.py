@@ -42,11 +42,6 @@ from dphe_db_pipeline.extractor.patient_summaries.models import (
 )
 from dphe_db_pipeline.extractor.patient_summaries.postprocess import dedup_and_merge
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - [%(levelname)-8s] - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 
@@ -205,6 +200,12 @@ def generate_patient_summaries(
 
 def main() -> int:
     from dphe_db_pipeline.paths import DEFAULT_COMPRESSED_DB, DEFAULT_EXTRACTION_DATA_DIR
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)-8s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     default_out = DEFAULT_EXTRACTION_DATA_DIR / "patient_summaries.jsonl"
 

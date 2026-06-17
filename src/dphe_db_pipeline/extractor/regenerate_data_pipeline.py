@@ -13,11 +13,6 @@ from dphe_db_pipeline.paths import (
     DEFAULT_OMOP_DB,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - [%(levelname)-8s] - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 REQUIRED_GROUPED_CSVS = (
@@ -119,6 +114,11 @@ def run_regeneration(
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)-8s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     parser = argparse.ArgumentParser(
         description="Regenerate extracted/grouped data and import into SQLite."
     )

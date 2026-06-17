@@ -34,11 +34,6 @@ except ImportError:
 # Increase CSV field size limit to handle very large patient_ids fields
 csv.field_size_limit(int(1e8))  # 100 MB limit
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [%(levelname)-8s] - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 logger = logging.getLogger(__name__)
 
 
@@ -858,6 +853,12 @@ def main() -> bool:
     import argparse
 
     from dphe_db_pipeline.paths import DEFAULT_COMPRESSED_DB, DEFAULT_EXTRACTION_DATA_DIR
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)-8s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     parser = argparse.ArgumentParser(
         description="Import parsed CSV data into the DeepPhe SQLite database."
