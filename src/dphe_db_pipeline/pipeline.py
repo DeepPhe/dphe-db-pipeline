@@ -249,12 +249,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-load-error-fraction",
         type=float,
-        default=0.25,
+        default=0.0,
         metavar="FRACTION",
         help=(
             "Maximum fraction of Stage 1 files that may fail to load before the stage is "
-            "treated as failed (default: 0.25). Use 0 to fail on any error, 1 to ignore "
-            "errors as long as at least one file loads."
+            "treated as failed (default: 0.0 -- fail on any error). Raise toward 1 to "
+            "tolerate more errors; 1 ignores errors as long as at least one file loads."
         ),
     )
     return parser

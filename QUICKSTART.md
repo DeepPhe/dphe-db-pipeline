@@ -110,11 +110,19 @@ uv run dphe-pipeline --skip-loader --skip-importer
 
 ### Tolerate Stage 1 load errors
 
+By default Stage 1 is strict: **any** file that fails to load aborts the run, so you never
+build a database from a silently-incomplete input set. When you knowingly have some bad or
+unreadable files in a large batch and want the run to proceed anyway, raise the allowed
+error fraction.
+
 | Parameter | Default | Effect |
 |---|---|---|
-| `--max-load-error-fraction FRACTION` | `0.25` | Maximum fraction of Stage 1 files that may fail to load before the stage fails. `0` = fail on any error; `1` = ignore errors as long as at least one file loads. |
+| `--max-load-error-fraction FRACTION` | `0.0` | Maximum fraction of Stage 1 files that may fail to load before the stage fails. `0` (default) = fail on any error; e.g. `0.10` = tolerate up to 10% failures; `1` = ignore errors as long as at least one file loads. (Stage 1 still fails if *zero* files load.) |
 
 ```bash
-# Allow up to 10% of input files to fail before aborting Stage 1
+# Strict (default): one unreadable file aborts the run
+uv run dphe-pipeline --input-zipdir /path/to/zips
+
+# Lenient: tolerate up to 10% of input files failing to load
 uv run dphe-pipeline --input-zipdir /path/to/zips --max-load-error-fraction 0.10
 ```
