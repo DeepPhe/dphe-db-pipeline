@@ -93,8 +93,7 @@ Fix:
 Recommended order:
 1. `README.md`
 2. `docs/architecture.md`
-3. `docs/runbook.md`
-4. `docs/config-reference.md`
-5. `run.py`
-6. `source/config_processor.py`
+3. `docs/config-reference.md`
+4. `run.py`
+5. `source/config_processor.py`
 

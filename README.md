@@ -33,7 +33,7 @@ Stage 2 reads demographics/diagnosis data from one of three sources, selected wi
 - `mysql` — read-only source tables copied from MySQL into SQLite.
 
 `csv` and `mysql` are configured through `.env`/environment variables. See
-[docs/importer/](docs/importer/) for the importer runbook and configuration reference.
+[docs/importer/](docs/importer/) for the importer architecture and configuration reference.
 
 ## Project layout
 
