@@ -5,7 +5,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
-[![License: Academic (DeepPhe)](https://img.shields.io/badge/license-Academic%20(DeepPhe)-lightgrey.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
 
 DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and
 extracting cancer concepts and patient summaries.
@@ -77,7 +77,4 @@ gitignored and must not be committed.
 
 ## License
 
-Boston Children's Hospital and University of Pittsburgh Academic Software Use Agreement
-(DeepPhe Software). Academic, non-profit research use only — no redistribution, no
-commercial use, and no clinical/diagnostic/treatment use. See [LICENSE](LICENSE) for the
-full terms, attribution requirement, and third-party terms (HemOnc, NCIT).
+Licensed under the Apache License, Version 2.0. See [LICENSE.md](LICENSE.md) for the full text.
