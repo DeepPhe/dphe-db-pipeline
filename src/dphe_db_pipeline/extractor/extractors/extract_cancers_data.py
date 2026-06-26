@@ -123,8 +123,9 @@ class DatabaseReader:
 
             for filename, content, encoding in rows:
                 try:
-                    # Extract patient_id from filename
-                    patient_id = filename.replace('_Cancers.json', '').replace('.json', '')
+                    # Extract patient_id from the file's basename, ignoring any
+                    # directory prefix (e.g. "fake_patient1/fake_patient1_Cancers.json").
+                    patient_id = Path(filename).name.replace('_Cancers.json', '').replace('.json', '')
 
                     # Decompress/decode content
                     content_str = decode_stored_content(content, encoding)
@@ -195,8 +196,9 @@ class DatabaseReader:
 
             for filename, content, encoding in rows:
                 try:
-                    # Extract patient_id from filename
-                    patient_id = filename.replace('_Concepts.json', '').replace('.json', '')
+                    # Extract patient_id from the file's basename, ignoring any
+                    # directory prefix (e.g. "fake_patient1/fake_patient1_Concepts.json").
+                    patient_id = Path(filename).name.replace('_Concepts.json', '').replace('.json', '')
 
                     # Decompress/decode content
                     content_str = decode_stored_content(content, encoding)

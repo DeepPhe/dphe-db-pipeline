@@ -79,8 +79,8 @@
       "AgeOfLastEncounter": "10-26-2010"
     },
     {
-      "PatientID": "patientX",
-      "PatientName": "patientX",
+      "PatientID": "patient_X",
+      "PatientName": "patient_X",
       "Race": "white",
       "Gender": "female",
       "DateOfBirth": "unknown",

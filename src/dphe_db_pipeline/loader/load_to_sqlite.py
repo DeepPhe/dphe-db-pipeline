@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to load files from a directory into SQLite database.
-Key: filename (relative path from input directory)
+Key: filename (basename only -- directory prefixes are stripped)
 Value: file content (as bytes), optionally compressed
 """
 
@@ -18,6 +18,37 @@ from zipfile import ZipFile
 from dphe_db_pipeline.loader.compression import build_compressor, maybe_compress
 
 logger = logging.getLogger(__name__)
+
+
+def _basename(name: str) -> str:
+    """Return just the file's basename, dropping any directory prefix.
+
+    Zip entries always use forward slashes, and directory-walk keys are
+    normalized to forward slashes via as_posix(), so splitting on '/' is
+    correct regardless of the host OS.
+    """
+    return name.rsplit('/', 1)[-1]
+
+
+# OS/filesystem metadata files that should never be ingested as patient data.
+_IGNORED_BASENAMES = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
+
+
+def _is_metadata_file(name: str) -> bool:
+    """True for OS/editor junk files that should be skipped during loading.
+
+    ``name`` may be a full path or zip entry (forward-slash separated).
+    """
+    base = _basename(name)
+    if base in _IGNORED_BASENAMES:
+        return True
+    # macOS AppleDouble resource forks ("._foo.json").
+    if base.startswith("._"):
+        return True
+    # macOS zip resource-fork tree.
+    if name == "__MACOSX" or name.startswith("__MACOSX/") or "/__MACOSX/" in name:
+        return True
+    return False
 
 
 def _ensure_schema(conn: sqlite3.Connection):
@@ -72,8 +103,11 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
         # Read all files from zip first (parallel processing - no lock needed)
         file_data_list = []  # tuples of (filename, content_bytes, encoding)
         with ZipFile(zip_path, 'r') as zf:
-            # Get list of files in zip (exclude directories)
-            file_list = [name for name in zf.namelist() if not name.endswith('/')]
+            # Get list of files in zip (exclude directories and OS metadata)
+            file_list = [
+                name for name in zf.namelist()
+                if not name.endswith('/') and not _is_metadata_file(name)
+            ]
 
             for file_name in file_list:
                 try:
@@ -83,8 +117,8 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                     # Optionally compress
                     store_bytes, encoding = maybe_compress(value, algo_name, compress_fn, min_compress_bytes)
 
-                    # Store data for batch insertion
-                    file_data_list.append((file_name, store_bytes, encoding))
+                    # Store data for batch insertion (basename only as key)
+                    file_data_list.append((_basename(file_name), store_bytes, encoding))
 
                     loaded_count += 1
                     total_bytes += len(value)
@@ -246,8 +280,11 @@ def load_files_to_db(
         logger.info("Loading files from zip: %s", zip_file)
 
         with ZipFile(zip_path, 'r') as zf:
-            # Get list of files in zip (exclude directories)
-            file_list = [name for name in zf.namelist() if not name.endswith('/')]
+            # Get list of files in zip (exclude directories and OS metadata)
+            file_list = [
+                name for name in zf.namelist()
+                if not name.endswith('/') and not _is_metadata_file(name)
+            ]
             total_files = len(file_list)
             logger.info("Found %d files in zip", total_files)
 
@@ -262,7 +299,7 @@ def load_files_to_db(
                     # Store in SQLite (will replace if key exists)
                     cursor.execute(
                         'INSERT OR REPLACE INTO files (filename, content, encoding) VALUES (?, ?, ?)',
-                        (file_name, store_bytes, encoding)
+                        (_basename(file_name), store_bytes, encoding)
                     )
 
                     loaded_count += 1
@@ -286,23 +323,21 @@ def load_files_to_db(
         if not input_path.is_dir():
             raise ValueError(f"Input path is not a directory: {input_dir}")
 
-        # Collect files to process
+        # Collect files to process (skip OS metadata like .DS_Store)
         if recursive:
-            files = [f for f in input_path.rglob('*') if f.is_file()]
+            files = [f for f in input_path.rglob('*') if f.is_file() and not _is_metadata_file(f.name)]
         else:
-            files = [f for f in input_path.glob('*') if f.is_file()]
+            files = [f for f in input_path.glob('*') if f.is_file() and not _is_metadata_file(f.name)]
 
         total_files = len(files)
         logger.info("Found %d files to load", total_files)
 
         for file_path in files:
             try:
-                # Use relative path from input_dir as key. Normalize to
-                # forward slashes (as_posix) so keys are identical regardless
-                # of the OS that built the DB, and consistent with the
-                # forward-slash keys produced by the zip-loading paths.
-                relative_path = file_path.relative_to(input_path)
-                key = relative_path.as_posix()
+                # Use the file's basename as key, dropping any directory
+                # prefix. This keeps keys identical regardless of the OS that
+                # built the DB and consistent with the zip-loading paths.
+                key = file_path.name
 
                 # Read file content as value
                 with open(file_path, 'rb') as f:

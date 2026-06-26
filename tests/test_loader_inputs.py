@@ -41,10 +41,42 @@ def test_load_directory_recursive(tmp_path: Path) -> None:
 
     assert (loaded, errors) == (2, 0)
     rows = _stored_rows(db_path)
-    # Keys are paths relative to the input directory.
-    assert set(rows) == {"a.json", "sub/b.json"}
+    # Keys are basenames only -- directory prefixes are stripped.
+    assert set(rows) == {"a.json", "b.json"}
     assert decode_stored_content(*rows["a.json"]) == '{"a": 1}'
-    assert decode_stored_content(*rows["sub/b.json"]) == '{"b": 2}'
+    assert decode_stored_content(*rows["b.json"]) == '{"b": 2}'
+
+
+def test_load_skips_os_metadata_files(tmp_path: Path) -> None:
+    source = tmp_path / "src"
+    (source / "sub").mkdir(parents=True)
+    (source / "real.json").write_text('{"r": 1}', encoding="utf-8")
+    # OS/editor junk that must never be ingested.
+    (source / ".DS_Store").write_bytes(b"\x00junk")
+    (source / "sub" / ".DS_Store").write_bytes(b"\x00junk")
+    (source / "._real.json").write_bytes(b"\x00resourcefork")
+
+    db_path = tmp_path / "out.sqlite3"
+    loaded, errors = load_files_to_db(str(source), str(db_path), compress="none")
+
+    assert (loaded, errors) == (1, 0)
+    assert set(_stored_rows(db_path)) == {"real.json"}
+
+
+def test_load_zip_skips_macosx_metadata(tmp_path: Path) -> None:
+    archive = tmp_path / "input.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("p1.json", '{"id": 1}')
+        zf.writestr(".DS_Store", b"\x00junk".decode("latin-1"))
+        zf.writestr("__MACOSX/._p1.json", b"\x00fork".decode("latin-1"))
+
+    db_path = tmp_path / "out.sqlite3"
+    loaded, errors = load_files_to_db(
+        str(tmp_path), str(db_path), zip_file=str(archive), compress="none"
+    )
+
+    assert (loaded, errors) == (1, 0)
+    assert set(_stored_rows(db_path)) == {"p1.json"}
 
 
 def test_load_directory_non_recursive_skips_subdirs(tmp_path: Path) -> None:
@@ -75,8 +107,9 @@ def test_load_single_zip(tmp_path: Path) -> None:
 
     assert (loaded, errors) == (2, 0)
     rows = _stored_rows(db_path)
-    assert set(rows) == {"p1.json", "nested/p2.json"}
-    assert decode_stored_content(*rows["nested/p2.json"]) == '{"id": 2}'
+    # Keys are basenames only -- the "nested/" prefix is stripped.
+    assert set(rows) == {"p1.json", "p2.json"}
+    assert decode_stored_content(*rows["p2.json"]) == '{"id": 2}'
 
 
 def test_load_zipdir_parallel(tmp_path: Path) -> None:
