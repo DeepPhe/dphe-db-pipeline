@@ -49,9 +49,10 @@ three-stage example, and a multiprocessing loader check, then renames and upload
 executable as a workflow artifact. It runs manually and on pushes to `main`.
 
 After all four builds pass, the workflow creates or updates an unsigned test release in
-`DeepPhe/DeepPhe-Dist` using the tag `dphe-db-pipeline-v<version>` and uploads all four
-executables with replacement enabled. The source repository must define a
-`DEEPHE_DIST_RELEASE_TOKEN` secret with `contents:write` access to the distribution repository.
+`DeepPhe/DeepPhe-Dist` using the tag configured by the workflow's `DPHE_VERSION` environment
+variable and uploads all four executables with replacement enabled. The source repository must
+define a `DEEPHE_DIST_RELEASE_TOKEN` secret with `contents:write` access to the distribution
+repository.
 
 ## Signing boundary
 

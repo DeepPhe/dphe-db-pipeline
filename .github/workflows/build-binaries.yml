@@ -96,10 +96,8 @@ jobs:
         shell: bash
         run: |
           version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
-          release_tag="${PACKAGE_NAME}-v${version}"
 
           {
-            echo "tag=${release_tag}"
             echo "title=${PACKAGE_NAME} v${version}"
             echo "notes<<EOF"
             echo "Unsigned test binaries built from ${GITHUB_REPOSITORY}@${GITHUB_SHA}."
@@ -126,7 +124,7 @@ jobs:
       - name: Create or update DeepPhe-Dist release
         env:
           GH_TOKEN: ${{ secrets.DEEPHE_DIST_RELEASE_TOKEN }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TAG: ${{ env.DPHE_VERSION }}
           RELEASE_TITLE: ${{ steps.release.outputs.title }}
           RELEASE_NOTES: ${{ steps.release.outputs.notes }}
         shell: bash
@@ -151,7 +149,7 @@ jobs:
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.DEEPHE_DIST_RELEASE_TOKEN }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TAG: ${{ env.DPHE_VERSION }}
         shell: bash
         run: |
           mapfile -t assets < <(find dist -maxdepth 1 -type f -print | sort)
