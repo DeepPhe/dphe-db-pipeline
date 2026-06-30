@@ -49,15 +49,15 @@ three-stage example, and a multiprocessing loader check, then renames and upload
 executable as a workflow artifact. It runs manually and on pushes to `main`.
 
 After all four builds pass, the workflow creates or updates an unsigned test release in
-`DeepPhe/DeepPhe-Dist` using the tag configured by the workflow's `DPHE_VERSION` environment
-variable and uploads all four executables with replacement enabled. The source repository must
-define a `DEEPHE_DIST_RELEASE_TOKEN` secret with `contents:write` access to the distribution
-repository.
+`DeepPhe/DeepPhe-Dist` using the tag `dphe-db-pipeline-<DPHE_VERSION>` (for example,
+`dphe-db-pipeline-7.1`) and uploads all four executables with replacement enabled. The source
+repository must define a `DEEPHE_DIST_RELEASE_TOKEN` secret with `contents:write` access to the
+distribution repository.
 
 ## Signing boundary
 
-These builds are intentionally unsigned release candidates, and the DeepPhe-Dist release title
-and notes identify them as unsigned. PyInstaller may apply the ad-hoc signature required for
-executable code to run on macOS, but no Developer ID identity is used. Developer ID signing and
-notarization on macOS, Authenticode signing on Windows, and Linux release signatures are not
-performed by the current workflow.
+These builds are intentionally unsigned release candidates, and the DeepPhe-Dist release notes
+identify them as unsigned. PyInstaller may apply the ad-hoc signature required for executable
+code to run on macOS, but no Developer ID identity is used. Developer ID signing and notarization
+on macOS, Authenticode signing on Windows, and Linux release signatures are not performed by the
+current workflow.
