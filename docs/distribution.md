@@ -44,14 +44,19 @@ Build output and PyInstaller work files are written under `dist/` and `build/`, 
 
 ## CI
 
-The `build-binaries` workflow builds each artifact natively, runs `--help` and the bundled
-three-stage example, renames the platform executable, and uploads it as a workflow artifact.
-It runs manually and for version tags matching `v*`.
+The `build-binaries` workflow builds each artifact natively, runs `--help`, the bundled
+three-stage example, and a multiprocessing loader check, then renames and uploads each platform
+executable as a workflow artifact. It runs manually and on pushes to `main`.
+
+After all four builds pass, the workflow creates or updates an unsigned test release in
+`DeepPhe/DeepPhe-Dist` using the tag `dphe-db-pipeline-v<version>` and uploads all four
+executables with replacement enabled. The source repository must define a
+`DEEPHE_DIST_RELEASE_TOKEN` secret with `contents:write` access to the distribution repository.
 
 ## Signing boundary
 
-These builds are intentionally unsigned release candidates. PyInstaller may apply the ad-hoc
-signature required for executable code to run on macOS, but no Developer ID identity is used.
-Developer ID signing and notarization on macOS, Authenticode signing on Windows, and Linux
-release signatures are the next distribution stage and are not performed by the current
-workflow.
+These builds are intentionally unsigned release candidates, and the DeepPhe-Dist release title
+and notes identify them as unsigned. PyInstaller may apply the ad-hoc signature required for
+executable code to run on macOS, but no Developer ID identity is used. Developer ID signing and
+notarization on macOS, Authenticode signing on Windows, and Linux release signatures are not
+performed by the current workflow.

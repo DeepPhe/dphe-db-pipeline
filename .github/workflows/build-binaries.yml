@@ -3,8 +3,12 @@ name: build unsigned binaries
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+
+env:
+  DIST_REPO: DeepPhe/DeepPhe-Dist
+  PACKAGE_NAME: dphe-db-pipeline
 
 permissions:
   contents: read
@@ -70,3 +74,87 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+  publish:
+    name: Publish unsigned DeepPhe-Dist release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Download unsigned executables
+        uses: actions/download-artifact@v5
+        with:
+          pattern: dphe-pipeline-*-unsigned
+          path: dist
+          merge-multiple: true
+
+      - name: Resolve release metadata
+        id: release
+        shell: bash
+        run: |
+          version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          release_tag="${PACKAGE_NAME}-v${version}"
+
+          {
+            echo "tag=${release_tag}"
+            echo "title=${PACKAGE_NAME} v${version} (unsigned)"
+            echo "notes<<EOF"
+            echo "Unsigned test binaries built from ${GITHUB_REPOSITORY}@${GITHUB_SHA}."
+            echo
+            echo "These assets have not received production code signing or macOS notarization."
+            echo "Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          mapfile -t assets < <(find dist -maxdepth 1 -type f -print | sort)
+
+          if [ "${#assets[@]}" -ne 4 ]; then
+            echo "::error title=Unexpected build artifacts::Expected 4 executables, found ${#assets[@]}."
+            printf '%s\n' "${assets[@]}"
+            exit 1
+          fi
+
+          printf 'Unsigned release assets:\n'
+          printf '%s\n' "${assets[@]}"
+
+      - name: Create or update DeepPhe-Dist release
+        env:
+          GH_TOKEN: ${{ secrets.DEEPHE_DIST_RELEASE_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release.outputs.title }}
+          RELEASE_NOTES: ${{ steps.release.outputs.notes }}
+        shell: bash
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error title=Missing release token::Add a DEEPHE_DIST_RELEASE_TOKEN secret with contents:write access to ${DIST_REPO}."
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" --repo "$DIST_REPO" > /dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" \
+              --repo "$DIST_REPO" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES"
+          else
+            gh release create "$RELEASE_TAG" \
+              --repo "$DIST_REPO" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES"
+          fi
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.DEEPHE_DIST_RELEASE_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          mapfile -t assets < <(find dist -maxdepth 1 -type f -print | sort)
+          gh release upload "$RELEASE_TAG" "${assets[@]}" \
+            --repo "$DIST_REPO" \
+            --clobber
