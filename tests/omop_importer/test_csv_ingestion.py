@@ -5,10 +5,9 @@ Covers the CSV -> SQLite table step behind ``--source-type csv``
 table creation from the CSV header, row insertion, and drop-and-recreate on
 re-import.
 
-The downstream config-driven OMOP transforms (change_column_types, lookup
-tables, ICD translation, concept translation) are a separate integration
-concern that needs SNOMED/ICD lookup fixtures and are not exercised here -- see
-TODO.md.
+The downstream config-driven OMOP transforms (change_column_types, ICD lookup
+loading and translation, concept translation) are a separate integration
+concern and are not exercised here -- see TODO.md.
 """
 
 import sqlite3

@@ -17,7 +17,7 @@ Symptom:
 
 Fix:
 - verify the path exists
-- pass `SOURCE_DIR=/actual/path` inline for a one-off run
+- pass `--source-dir /actual/path` or `SOURCE_DIR=/actual/path` for a one-off run
 - ensure the directory contains `.csv` files
 
 ## MySQL run connects but no useful tables appear in SQLite
@@ -96,4 +96,3 @@ Recommended order:
 3. `docs/importer/config-reference.md`
 4. `omop_importer/run.py`
 5. `omop_importer/source/config_processor.py`
-

@@ -156,6 +156,7 @@ def load_config(
     *,
     source_type: str | None = None,
     sqlite_db_path: str | Path | None = None,
+    source_dir: str | Path | None = None,
     json_source_path: str | Path | None = None,
 ) -> dict:
     """
@@ -173,7 +174,7 @@ def load_config(
     values: dict[str, str | None] = {
         'SOURCE_TYPE': source_type,
         'SQLITE_DB_PATH': str(sqlite_db_path) if sqlite_db_path else os.getenv('SQLITE_DB_PATH', ''),
-        'SOURCE_DIR': os.getenv('SOURCE_DIR', ''),
+        'SOURCE_DIR': str(source_dir) if source_dir else os.getenv('SOURCE_DIR', ''),
         'JSON_SOURCE_PATH': str(json_source_path) if json_source_path else os.getenv('JSON_SOURCE_PATH', ''),
         **{key: os.getenv(key, '') for key in _MYSQL_FIELDS},
     }
@@ -317,6 +318,7 @@ def run_omop_import(
     *,
     source_type: str | None = None,
     sqlite_db_path: str | Path | None = None,
+    source_dir: str | Path | None = None,
     json_source_path: str | Path | None = None,
 ) -> None:
     """Run the OMOP importer with optional runtime overrides threaded in directly."""
@@ -324,6 +326,7 @@ def run_omop_import(
         Path(config_path),
         source_type=source_type,
         sqlite_db_path=sqlite_db_path,
+        source_dir=source_dir,
         json_source_path=json_source_path,
     )
 
@@ -333,6 +336,7 @@ def _run_omop_import(
     *,
     source_type: str | None = None,
     sqlite_db_path: str | Path | None = None,
+    source_dir: str | Path | None = None,
     json_source_path: str | Path | None = None,
 ) -> None:
     tasks_config = load_tasks_config(config_path)
@@ -346,6 +350,7 @@ def _run_omop_import(
     config = load_config(
         source_type=source_type,
         sqlite_db_path=sqlite_db_path,
+        source_dir=source_dir,
         json_source_path=json_source_path,
     )
 
@@ -403,7 +408,6 @@ def _run_omop_import(
     drop_table(cursors['lookup'], conns['lookup'], "calculated_dx_data", True)
     drop_table(cursors['lookup'], conns['lookup'], "calculated_pt_icd_codes", True)
     drop_table(cursors['lookup'], conns['lookup'], "calculated_patient_data", True)
-    drop_table(cursors['lookup'], conns['lookup'], "snomed_codes", True)
 
     if source_type != 'json':
         # Source-table-dependent steps (skipped in JSON mode where source tables don't exist)
@@ -449,10 +453,26 @@ def main():
         default=None,
         help="Override SOURCE_TYPE from .env (csv | mysql | json)",
     )
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Override SOURCE_DIR for SOURCE_TYPE=csv.",
+    )
     args = parser.parse_args()
 
+    if args.source_dir and args.source_type is None:
+        args.source_type = "csv"
+    if args.source_dir and args.source_type != "csv":
+        parser.error("--source-dir can only be used with --source-type csv.")
+
     try:
-        run_omop_import(args.omop_config, source_type=args.source_type)
+        run_omop_import(
+            args.omop_config,
+            source_type=args.source_type,
+            source_dir=args.source_dir.resolve() if args.source_dir else None,
+        )
     except Exception as exc:
         logger.error("Error: %s", exc)
         return 1

@@ -318,7 +318,6 @@ def add_column(
 
     execute_query(cursor=cursor, conn=conn, query=query, commit=commit)
 
-
 # ---------------------------------------------------------------------------
 # Update helpers
 # ---------------------------------------------------------------------------
@@ -589,73 +588,3 @@ def insert_single_column(
     );
     """
     execute_query(cursor=cursor, conn=conn, query=query, commit=commit)
-
-
-# ---------------------------------------------------------------------------
-# ICD utility
-# ---------------------------------------------------------------------------
-
-def get_unique_matching_icd_codes(
-    cursor,
-    table_name,
-    column_name,
-    where_values_in_array=None,
-    icd_vocab=None,
-    substring_char=None,
-    index=None,
-):
-    """
-    Get unique values for a column, optionally filtering for ICD vocab and post-processing substrings.
-    SQLite-safe fallback for SUBSTRING_INDEX.
-    """
-    # Keep behavior compatible with original, but fix uninitialized column_string bug.
-    column_expr = column_name
-
-    is_sqlite = False
-    try:
-        is_sqlite = isinstance(getattr(cursor, "connection", None), sqlite3.Connection)
-    except Exception:
-        pass
-
-    # If substring requested and running MySQL, use SUBSTRING_INDEX; otherwise post-process in Python
-    use_python_substring = bool(substring_char)
-
-    if substring_char and not is_sqlite:
-        # MySQL supports SUBSTRING_INDEX
-        if index is None:
-            index = -1
-        column_expr = f"SUBSTRING_INDEX({column_name}, '{substring_char}', {index})"
-        use_python_substring = False
-
-    query = f"SELECT DISTINCT {column_expr} FROM {table_name}"
-    conditions = []
-
-    if icd_vocab:
-        conditions.append(f"{column_name} LIKE '%{icd_vocab}%'")
-
-    if where_values_in_array:
-        vals = ", ".join("'" + str(v).replace("'", "''") + "'" for v in where_values_in_array)
-        conditions.append(f"{column_name} IN ({vals})")
-
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    cursor.execute(query)
-    values = [row[0] for row in cursor.fetchall() if row and row[0] is not None]
-
-    if use_python_substring and substring_char:
-        processed = []
-        for v in values:
-            s = str(v)
-            parts = s.split(substring_char)
-            if index is None:
-                processed.append(parts[-1])
-            else:
-                try:
-                    processed.append(parts[index])
-                except Exception:
-                    processed.append(s)
-        values = processed
-
-    # preserve uniqueness
-    return list(dict.fromkeys(values))

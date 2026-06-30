@@ -147,6 +147,7 @@ site/
 .Python
 *.manifest
 *.spec
+!packaging/dphe-pipeline.spec
 
 # Unit test / coverage reports
 .coverage.*

@@ -5,7 +5,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and
 extracting cancer concepts and patient summaries.
@@ -43,8 +43,9 @@ Stage 2 reads demographics/diagnosis data from one of three sources, selected wi
 - `csv` — source tables from a CSV directory.
 - `mysql` — read-only source tables copied from MySQL into SQLite.
 
-`csv` and `mysql` are configured through `.env`/environment variables. See
-[docs/importer/](docs/importer/) for the importer architecture and configuration reference.
+`csv` can be configured with `--source-dir` or `SOURCE_DIR`; `mysql` is configured through
+`.env`/environment variables. See [docs/importer/](docs/importer/) for the importer
+architecture and configuration reference.
 
 ## Project layout
 
@@ -70,6 +71,12 @@ uv run ruff check src/dphe_db_pipeline tests
 uv run mypy src/dphe_db_pipeline
 ```
 
+## Standalone binaries
+
+Unsigned one-file executables can be built with PyInstaller. See
+[docs/distribution.md](docs/distribution.md) for supported artifacts, local build commands,
+and CI behavior. Python does not need to be installed on the destination system.
+
 ## Security
 
 Databases and extracted outputs may contain protected health information (PHI). They are
@@ -77,4 +84,4 @@ gitignored and must not be committed.
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [LICENSE.md](LICENSE.md) for the full text.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.

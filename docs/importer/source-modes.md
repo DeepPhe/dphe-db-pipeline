@@ -24,6 +24,9 @@ SOURCE_DIR=/path/to/csvs
 SQLITE_DB_PATH=output/databases/individual/omop.sqlite3
 ```
 
+For one-off CLI runs, `--source-dir /path/to/csvs` can be used instead of setting
+`SOURCE_DIR`.
+
 ### What happens
 
 - All CSV files in `SOURCE_DIR` are loaded into SQLite
@@ -34,7 +37,6 @@ SQLITE_DB_PATH=output/databases/individual/omop.sqlite3
 
 - Imported source tables (many)
 - `ICD_CODES`
-- `SNOMED_CODES`
 - `CALCULATED_PATIENT_DATA`
 - `CALCULATED_DX_DATA`
 - `CALCULATED_PT_ICD_CODES`

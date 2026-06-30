@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
 from dphe_db_pipeline.omop_importer import run
@@ -21,6 +22,23 @@ def temporary_cwd(path: str):
 
 
 class RunConfigTests(unittest.TestCase):
+    def test_default_config_loads_only_icd_lookup_data(self) -> None:
+        importer_dir = (
+            Path(__file__).resolve().parents[2] / "src" / "dphe_db_pipeline" / "omop_importer"
+        )
+        config_path = importer_dir / "omop-config.js"
+
+        tasks_config = run.load_tasks_config(config_path)
+        lookup_families = tasks_config["before_update"]["add_lookup_tables"]["subdirectories"]
+
+        self.assertEqual([family["directory"] for family in lookup_families], ["ICD_CODES"])
+        self.assertEqual(
+            (importer_dir / "lookup_tables" / "ICD_CODES" / "icd.bsv")
+            .read_text(encoding="utf-8")
+            .splitlines()[0],
+            "CODE|VOCAB|CANCER",
+        )
+
     def test_load_tasks_config_supports_export_default_js(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_path = os.path.join(tmp_dir, "omop-config.js")
@@ -62,8 +80,6 @@ class RunConfigTests(unittest.TestCase):
         self.assertEqual(config.get("SOURCE_DIR"), "")
 
     def test_load_config_csv_requires_source_dir(self) -> None:
-        # csv has no runtime SOURCE_DIR override path, so config validation must
-        # require it here -- the same rule check_env enforces (shared validator).
         with patch.dict(
             os.environ,
             {"SOURCE_TYPE": "csv", "SQLITE_DB_PATH": "test.sqlite3"},
@@ -83,6 +99,17 @@ class RunConfigTests(unittest.TestCase):
             clear=True,
         ):
             config = run.load_config()
+
+        self.assertEqual(config["SOURCE_TYPE"], "csv")
+        self.assertEqual(config["SOURCE_DIR"], "/tmp/source")
+
+    def test_load_config_csv_accepts_source_dir_override(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"SOURCE_TYPE": "csv", "SQLITE_DB_PATH": "test.sqlite3"},
+            clear=True,
+        ):
+            config = run.load_config(source_dir="/tmp/source")
 
         self.assertEqual(config["SOURCE_TYPE"], "csv")
         self.assertEqual(config["SOURCE_DIR"], "/tmp/source")
@@ -193,7 +220,7 @@ class RunConfigTests(unittest.TestCase):
                 patch("dphe_db_pipeline.omop_importer.run.process_translation") as mock_process_translation:
                 run.main()
 
-            self.assertEqual(mock_drop_table.call_count, 4)
+            self.assertEqual(mock_drop_table.call_count, 3)
             mock_run_json_import.assert_called_once()
             called_json_path = mock_run_json_import.call_args[0][0]
             self.assertEqual(called_json_path, json_path)
@@ -207,4 +234,3 @@ class RunConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

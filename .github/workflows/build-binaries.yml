@@ -1,0 +1,72 @@
+name: build unsigned binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: dphe-pipeline-linux-x86_64
+            built-file: dist/dphe-pipeline
+            artifact-file: dist/dphe-pipeline-linux-x86_64
+          - os: windows-2022
+            artifact: dphe-pipeline-windows-x86_64
+            built-file: dist/dphe-pipeline.exe
+            artifact-file: dist/dphe-pipeline-windows-x86_64.exe
+          - os: macos-15
+            artifact: dphe-pipeline-macos-arm64
+            built-file: dist/dphe-pipeline
+            artifact-file: dist/dphe-pipeline-macos-arm64
+          - os: macos-15-intel
+            artifact: dphe-pipeline-macos-x86_64
+            built-file: dist/dphe-pipeline
+            artifact-file: dist/dphe-pipeline-macos-x86_64
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install binary-build dependencies
+        run: uv sync --frozen --group binary --extra mysql
+
+      - name: Build one-file executable
+        run: uv run pyinstaller --clean --noconfirm packaging/dphe-pipeline.spec
+
+      - name: Smoke-test frozen executable
+        run: uv run python packaging/smoke_test.py "${{ matrix.built-file }}"
+
+      - name: Rename artifact (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: mv "${{ matrix.built-file }}" "dist/${{ matrix.artifact }}"
+
+      - name: Rename artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Move-Item "${{ matrix.built-file }}" "dist/${{ matrix.artifact }}.exe"
+
+      - name: Upload unsigned executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-unsigned
+          path: ${{ matrix.artifact-file }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

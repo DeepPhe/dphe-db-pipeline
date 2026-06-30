@@ -1,9 +1,5 @@
 import sqlite3
 
-import icd10
-from icd9cms import search
-
-from ..utils.column_ops import get_unique_matching_icd_codes
 from ..utils.delete_ops import truncate_table
 from ..utils.query_utils import execute_query
 
@@ -50,114 +46,6 @@ def _parent3_from_condition_value(value):
         return None
     token = token.strip()
     return token[:3] if token else None
-
-
-def lookup_icd_description(code, icd9=False):
-    """
-    Look up the description for an ICD9/ICD10 code.
-    """
-    if icd9:
-        icd9_obj = search(code)
-        if icd9_obj:
-            if icd9_obj.long_desc is not None:
-                return icd9_obj.long_desc
-            elif icd9_obj.short_desc is not None:
-                return icd9_obj.short_desc
-            else:
-                return icd9_obj.code
-    else:
-        icd10_obj = icd10.find(code)
-        if icd10_obj:
-            if icd10_obj.description is not None:
-                return icd10_obj.description
-            else:
-                return icd10_obj.code
-    return None
-
-
-def create_icd_lookup_table(cursor, conn, icd9=False, icd10=False):
-    """
-    Create and populate an ICD lookup table.
-    """
-    table_name = ""
-    if icd9:
-        table_name = "icd9_lookup"
-    if icd10:
-        table_name = "icd10_lookup"
-
-    truncate_table(cursor, conn, table_name)
-
-    # SQLite-safe DDL types
-    if _is_sqlite(conn):
-        query = f"""
-        CREATE TABLE IF NOT EXISTS {_quote_ident(table_name)} (
-            code TEXT PRIMARY KEY,
-            description TEXT
-        );
-        """
-    else:
-        query = f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            code VARCHAR(50) PRIMARY KEY,
-            description TEXT
-        );
-        """
-    execute_query(cursor=cursor, conn=conn, query=query, commit=True)
-
-    vocab = "ICD9" if icd9 else "ICD10"
-
-    unique_brcaova_hosp_codes = get_unique_matching_icd_codes(
-        cursor,
-        table_name="omop.DIAGNOSIS_BRCAOVCA_HOSP_VW",
-        column_name="CONDITION_SOURCE_VALUE",
-        icd_vocab=vocab,
-        substring_char=":",
-        index=-1,
-    )
-    unique_brcaova_outpt_codes = get_unique_matching_icd_codes(
-        cursor,
-        table_name="omop.DIAGNOSIS_BRCAOVCA_OUTPT_VW",
-        column_name="CONDITION_SOURCE_VALUE",
-        icd_vocab=vocab,
-        substring_char=":",
-        index=-1,
-    )
-    unique_melanoma_hosp_codes = get_unique_matching_icd_codes(
-        cursor,
-        table_name="omop.DIAGNOSIS_MELANOMA_HOSP_VW",
-        column_name="CONDITION_SOURCE_VALUE",
-        icd_vocab=vocab,
-        substring_char=":",
-        index=-1,
-    )
-    unique_melanoma_outpt_codes = get_unique_matching_icd_codes(
-        cursor,
-        table_name="omop.DIAGNOSIS_MELANOMA_OUTPT_VW",
-        column_name="CONDITION_SOURCE_VALUE",
-        icd_vocab=vocab,
-        substring_char=":",
-        index=-1,
-    )
-
-    unique_icd_codes = list(
-        set(
-            unique_brcaova_hosp_codes
-            + unique_brcaova_outpt_codes
-            + unique_melanoma_hosp_codes
-            + unique_melanoma_outpt_codes
-        )
-    )
-
-    ph = _placeholder(conn)
-    insert_query = f"INSERT INTO {_quote_ident(table_name)} (code, description) VALUES ({ph}, {ph});"
-
-    rows = []
-    for code in unique_icd_codes:
-        rows.append((code, lookup_icd_description(code, icd9=icd9)))
-
-    if rows:
-        cursor.executemany(insert_query, rows)
-        conn.commit()
 
 
 def _load_icd_code_prefix_map(cursor, conn, dest_schema, icd_codes_table="ICD_CODES"):

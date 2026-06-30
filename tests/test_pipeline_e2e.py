@@ -15,6 +15,7 @@ import sqlite3
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -150,3 +151,50 @@ def test_default_example_uses_bundled_omop_demographics():
 
     assert args.demographics == DEFAULT_OMOP_DEMOGRAPHICS
     assert args.source_type == "json"
+
+
+def test_source_dir_prevents_bundled_omop_demographics():
+    from dphe_db_pipeline.pipeline import _apply_default_example_omop, build_parser
+
+    args = build_parser().parse_args(["--source-dir", "/tmp/source-csvs"])
+
+    _apply_default_example_omop(args)
+
+    assert args.demographics is None
+    assert args.source_type is None
+
+
+def test_run_importer_threads_source_dir():
+    from dphe_db_pipeline.pipeline import _run_importer
+
+    config = Path("/tmp/omop-config.js")
+    sqlite_db = Path("/tmp/omop.sqlite3")
+    source_dir = Path("/tmp/source-csvs")
+
+    with patch("dphe_db_pipeline.pipeline.run_omop_import") as mock_run:
+        _run_importer(
+            config=config,
+            source_type="csv",
+            sqlite_db_path=sqlite_db,
+            source_dir=source_dir,
+            demographics=None,
+        )
+
+    mock_run.assert_called_once_with(
+        config,
+        source_type="csv",
+        sqlite_db_path=sqlite_db,
+        source_dir=source_dir,
+        json_source_path=None,
+    )
+
+
+def test_pipeline_csv_without_source_dir_errors_before_running(tmp_path):
+    from dphe_db_pipeline import pipeline
+
+    with patch.dict("os.environ", {}, clear=True), \
+        patch("sys.argv", ["dphe-pipeline", "--input-dir", str(tmp_path)]):
+        with pytest.raises(SystemExit) as exc_info:
+            pipeline.main()
+
+    assert exc_info.value.code == 2

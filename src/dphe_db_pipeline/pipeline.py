@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 from pathlib import Path
 
 from dphe_db_pipeline.loader.load_to_sqlite import load_files_to_db
@@ -92,6 +93,7 @@ def _run_importer(
     config: Path,
     source_type: str | None,
     sqlite_db_path: Path,
+    source_dir: Path | None,
     demographics: Path | None,
 ) -> None:
     logger.info("=" * 60)
@@ -103,6 +105,7 @@ def _run_importer(
         config,
         source_type=source_type,
         sqlite_db_path=sqlite_db_path,
+        source_dir=source_dir,
         json_source_path=demographics,
     )
     logger.info("Stage 2 complete.")
@@ -211,6 +214,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override SOURCE_TYPE for Stage 2 (csv | mysql | json).",
     )
     parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Directory of Stage 2 CSV source tables. Sets SOURCE_DIR for --source-type csv.",
+    )
+    parser.add_argument(
         "--demographics",
         type=Path,
         default=None,
@@ -274,6 +284,7 @@ def _apply_default_example_omop(args: argparse.Namespace) -> None:
     """Use bundled OMOP JSON for the bundled DeepPhe example unless explicitly overridden."""
     if (
         not args.demographics
+        and not args.source_dir
         and args.source_type is None
         and _uses_default_example_input(args)
     ):
@@ -291,8 +302,26 @@ def main() -> int:
     if args.demographics and args.source_type is None:
         args.source_type = "json"
 
+    if args.source_dir and args.source_type is None:
+        args.source_type = "csv"
+
     if args.demographics and args.source_type != "json":
         parser.error("--demographics can only be used with --source-type json.")
+
+    if args.source_dir and args.source_type != "csv":
+        parser.error("--source-dir can only be used with --source-type csv.")
+
+    effective_source_type = (args.source_type or os.getenv("SOURCE_TYPE") or "csv").lower()
+    if (
+        not args.skip_importer
+        and effective_source_type == "csv"
+        and not args.source_dir
+        and not os.getenv("SOURCE_DIR")
+    ):
+        parser.error(
+            "Stage 2 SOURCE_TYPE=csv requires --source-dir or SOURCE_DIR. "
+            "--input-dir only controls Stage 1 DeepPhe NLP input."
+        )
 
     if not args.skip_loader and not (args.input_dir or args.input_zip or args.input_zipdir):
         parser.error(
@@ -330,6 +359,7 @@ def main() -> int:
                 config=config,
                 source_type=args.source_type,
                 sqlite_db_path=omop_db,
+                source_dir=args.source_dir.resolve() if args.source_dir else None,
                 demographics=args.demographics.resolve() if args.demographics else None,
             )
             if args.only_importer:

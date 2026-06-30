@@ -25,23 +25,15 @@ These tables are the input to much of the config-driven transformation pipeline.
 Purpose:
 - reference lookup for ICD-based cancer mappings
 
-Typical columns:
-- `CODE`
-- `DESCRIPTION`
-- `CANCER`
-- `VOCAB`
-
-### `SNOMED_CODES`
-
-Purpose:
-- reference lookup for SNOMED-based cancer mappings
+Source:
+- `src/dphe_db_pipeline/omop_importer/lookup_tables/ICD_CODES/icd.bsv`
+- a curated 52-row subset of ICD-9-CM and ICD-10-CM cancer code prefixes
+- covers breast (`B`), ovarian (`O`), and melanoma (`M`) mappings; it is not a complete ICD code set
 
 Typical columns:
 - `CODE`
-- `CODE_DEFINITION`
-- `PREFERRED_TERM`
-- `VOCAB`
 - `CANCER`
+- `VOCAB`
 
 ## 3. Calculated tables
 
@@ -113,4 +105,3 @@ If you are unsure which path ran, inspect the destination database:
 
 - If you see many imported `*_VW` tables, you likely ran `csv` or `mysql`.
 - If you only see calculated tables after a clean run, you likely ran `json`.
-

@@ -69,9 +69,7 @@ Common fields:
 
 Each subdirectory entry describes one lookup table family, including column metadata.
 
-Current lookup families include:
-- `SNOMED_CODES`
-- `ICD_CODES`
+The current lookup family is `ICD_CODES`.
 
 ## `after_update`
 

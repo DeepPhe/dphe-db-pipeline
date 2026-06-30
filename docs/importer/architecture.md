@@ -31,7 +31,7 @@ CSV files / MySQL / JSON
         v
    SQLite destination
    ├── imported source tables   (csv/mysql only)
-   ├── lookup tables            (ICD_CODES, SNOMED_CODES, ...)
+   ├── lookup tables            (ICD_CODES)
    └── calculated tables        (CALCULATED_*)
 ```
 
@@ -95,7 +95,6 @@ These exist only in `csv` and `mysql` modes. Examples include:
 
 Static or derived reference tables such as:
 - `ICD_CODES`
-- `SNOMED_CODES`
 
 ### Calculated tables
 

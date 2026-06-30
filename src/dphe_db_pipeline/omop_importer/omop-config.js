@@ -182,58 +182,8 @@ export default {
       "lookup_tables_dir": "lookup_tables",
       "subdirectories": [
         {
-          "directory": "SNOMED_CODES",
-          "columns": [
-            {
-              "destination_column": "CODE_DEFINITION",
-              "destination_column_type": "TEXT",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "NO"
-            },
-            {
-              "destination_column": "PREFERRED_TERM",
-              "destination_column_type": "TEXT",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "NO"
-            },
-            {
-              "destination_column": "CODE",
-              "destination_column_type": "VARCHAR(20)",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "YES",
-              "key_length": 20,
-              "destination_column_primary_key": "NO"
-            },
-            {
-              "destination_column": "VOCAB",
-              "destination_column_type": "VARCHAR(10)",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "NO"
-            },
-            {
-              "destination_column": "CANCER",
-              "destination_column_type": "CHAR",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "YES",
-              "key_length": 1
-            }
-          ]
-        },
-        {
           "directory": "ICD_CODES",
           "columns": [
-            {
-              "destination_column": "DESCRIPTION",
-              "destination_column_type": "TEXT",
-              "destination_column_default": "NULL",
-              "destination_column_nullable": "YES",
-              "destination_column_index": "NO"
-            },
             {
               "destination_column": "CODE",
               "destination_column_type": "VARCHAR(10)",
@@ -386,7 +336,6 @@ export default {
           "destination_person_id_column": "PERSON_ID",
           "destination_code_column": "PARENT",
           "destination_parent_column": "PARENT",
-          "destination_code_description_column": "DESCRIPTION",
           "destination_date_column": "DATE",
           "destination_date_format": "YYYY-MM-DD",
           "destination_date_column_type": "DATE",
