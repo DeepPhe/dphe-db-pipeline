@@ -100,7 +100,7 @@ jobs:
 
           {
             echo "tag=${release_tag}"
-            echo "title=${PACKAGE_NAME} v${version} (unsigned)"
+            echo "title=${PACKAGE_NAME} v${version}"
             echo "notes<<EOF"
             echo "Unsigned test binaries built from ${GITHUB_REPOSITORY}@${GITHUB_SHA}."
             echo
