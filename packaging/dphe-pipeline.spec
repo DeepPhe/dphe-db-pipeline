@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from PyInstaller.utils.hooks import copy_metadata
@@ -5,6 +6,7 @@ from PyInstaller.utils.hooks import copy_metadata
 
 project_root = Path(SPECPATH).parent
 package_root = project_root / "src" / "dphe_db_pipeline"
+codesign_identity = os.environ.get("PYINSTALLER_CODESIGN_IDENTITY") or None
 
 # Keep the data-file destinations aligned with their source-package paths.
 # dphe_db_pipeline.paths uses __file__-relative paths in normal and frozen runs.
@@ -66,6 +68,6 @@ executable = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
+    codesign_identity=codesign_identity,
     entitlements_file=None,
 )
