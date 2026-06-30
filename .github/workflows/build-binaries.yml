@@ -139,12 +139,47 @@ jobs:
         run: |
           $certificatePath = Join-Path $env:RUNNER_TEMP "deepphe-authenticode.pfx"
           $artifactPath = "${{ matrix.artifact-file }}"
+          $signingCertificate = $null
 
           try {
             [IO.File]::WriteAllBytes(
               $certificatePath,
               [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64)
             )
+
+            $securePassword = ConvertTo-SecureString `
+              $env:WINDOWS_CERTIFICATE_PASSWORD `
+              -AsPlainText `
+              -Force
+            $importedCertificates = @(
+              Import-PfxCertificate `
+                -FilePath $certificatePath `
+                -CertStoreLocation Cert:\CurrentUser\My `
+                -Password $securePassword
+            )
+
+            $codeSigningOid = "1.3.6.1.5.5.7.3.3"
+            $signingCertificate = $importedCertificates |
+              Where-Object {
+                $ekuOids = @($_.EnhancedKeyUsageList | ForEach-Object { $_.ObjectId.Value })
+                $_.HasPrivateKey -and ($ekuOids.Count -eq 0 -or $codeSigningOid -in $ekuOids)
+              } |
+              Select-Object -First 1
+
+            if (-not $signingCertificate) {
+              throw "The PFX does not contain a certificate with a private key and the Code Signing EKU ($codeSigningOid)."
+            }
+            if ($signingCertificate.NotBefore -gt (Get-Date)) {
+              throw "The Windows code-signing certificate is not valid until $($signingCertificate.NotBefore.ToUniversalTime().ToString('u'))."
+            }
+            if ($signingCertificate.NotAfter -lt (Get-Date)) {
+              throw "The Windows code-signing certificate expired at $($signingCertificate.NotAfter.ToUniversalTime().ToString('u'))."
+            }
+
+            Write-Host "Certificate subject: $($signingCertificate.Subject)"
+            Write-Host "Certificate issuer: $($signingCertificate.Issuer)"
+            Write-Host "Certificate validity: $($signingCertificate.NotBefore.ToUniversalTime().ToString('u')) through $($signingCertificate.NotAfter.ToUniversalTime().ToString('u'))"
+            Write-Host "Certificate thumbprint: $($signingCertificate.Thumbprint)"
 
             $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
               Sort-Object FullName -Descending |
@@ -158,8 +193,7 @@ jobs:
               "/fd", "SHA256",
               "/tr", "http://timestamp.digicert.com",
               "/td", "SHA256",
-              "/f", $certificatePath,
-              "/p", $env:WINDOWS_CERTIFICATE_PASSWORD,
+              "/sha1", $signingCertificate.Thumbprint,
               "/d", "DeepPhe Visualizer Database Creator",
               $artifactPath
             )
@@ -174,6 +208,9 @@ jobs:
             }
           }
           finally {
+            if ($signingCertificate) {
+              Remove-Item -Force -ErrorAction SilentlyContinue "Cert:\CurrentUser\My\$($signingCertificate.Thumbprint)"
+            }
             Remove-Item -Force -ErrorAction SilentlyContinue $certificatePath
           }
 
