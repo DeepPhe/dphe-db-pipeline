@@ -79,6 +79,9 @@ jobs:
     name: Publish unsigned DeepPhe-Dist release
     needs: build
     runs-on: ubuntu-latest
+    environment: DPHE 7.1
+    env:
+      DPHE_VERSION: ${{ vars.DPHE_VERSION }}
 
     steps:
       - name: Check out source
