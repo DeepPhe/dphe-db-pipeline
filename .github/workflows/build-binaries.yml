@@ -22,21 +22,21 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            artifact: dphe-pipeline-linux-x86_64
-            built-file: dist/dphe-pipeline
-            artifact-file: dist/dphe-pipeline-linux-x86_64
+            artifact: DeepPheVizDbCreator-linux-x86_64
+            built-file: dist/DeepPheVizDbCreator
+            artifact-file: dist/DeepPheVizDbCreator-linux-x86_64
           - os: windows-2022
-            artifact: dphe-pipeline-windows-x86_64
-            built-file: dist/dphe-pipeline.exe
-            artifact-file: dist/dphe-pipeline-windows-x86_64.exe
+            artifact: DeepPheVizDbCreator-windows-x86_64
+            built-file: dist/DeepPheVizDbCreator.exe
+            artifact-file: dist/DeepPheVizDbCreator-windows-x86_64.exe
           - os: macos-15
-            artifact: dphe-pipeline-macos-arm64
-            built-file: dist/dphe-pipeline
-            artifact-file: dist/dphe-pipeline-macos-arm64
+            artifact: DeepPheVizDbCreator-macos-arm64
+            built-file: dist/DeepPheVizDbCreator
+            artifact-file: dist/DeepPheVizDbCreator-macos-arm64
           - os: macos-15-intel
-            artifact: dphe-pipeline-macos-x86_64
-            built-file: dist/dphe-pipeline
-            artifact-file: dist/dphe-pipeline-macos-x86_64
+            artifact: DeepPheVizDbCreator-macos-x86_64
+            built-file: dist/DeepPheVizDbCreator
+            artifact-file: dist/DeepPheVizDbCreator-macos-x86_64
 
     steps:
       - uses: actions/checkout@v6
@@ -90,7 +90,7 @@ jobs:
       - name: Download unsigned executables
         uses: actions/download-artifact@v8
         with:
-          pattern: dphe-pipeline-*-unsigned
+          pattern: DeepPheVizDbCreator-*-unsigned
           path: dist
           merge-multiple: true
 

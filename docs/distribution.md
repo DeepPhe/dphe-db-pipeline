@@ -8,10 +8,10 @@ install Python or project dependencies.
 
 | Artifact | CI runner | Target |
 |---|---|---|
-| `dphe-pipeline-linux-x86_64` | `ubuntu-22.04` | glibc-based Linux x86_64 |
-| `dphe-pipeline-windows-x86_64.exe` | `windows-2022` | Windows x86_64 |
-| `dphe-pipeline-macos-arm64` | `macos-15` | Apple Silicon macOS |
-| `dphe-pipeline-macos-x86_64` | `macos-15-intel` | Intel macOS |
+| `DeepPheVizDbCreator-linux-x86_64` | `ubuntu-22.04` | glibc-based Linux x86_64 |
+| `DeepPheVizDbCreator-windows-x86_64.exe` | `windows-2022` | Windows x86_64 |
+| `DeepPheVizDbCreator-macos-arm64` | `macos-15` | Apple Silicon macOS |
+| `DeepPheVizDbCreator-macos-x86_64` | `macos-15-intel` | Intel macOS |
 
 Alpine/musl Linux and other CPU architectures require separate native builds.
 
@@ -35,10 +35,10 @@ Run the build on the operating system and CPU architecture being targeted:
 ```bash
 uv sync --frozen --group binary --extra mysql
 uv run pyinstaller --clean --noconfirm packaging/dphe-pipeline.spec
-uv run python packaging/smoke_test.py dist/dphe-pipeline
+uv run python packaging/smoke_test.py dist/DeepPheVizDbCreator
 ```
 
-On Windows, use `dist/dphe-pipeline.exe` for the smoke-test path.
+On Windows, use `dist/DeepPheVizDbCreator.exe` for the smoke-test path.
 
 Build output and PyInstaller work files are written under `dist/` and `build/`, which are ignored.
 

@@ -57,7 +57,7 @@ executable = EXE(
     analysis.binaries,
     analysis.datas,
     [],
-    name="dphe-pipeline",
+    name="DeepPheVizDbCreator",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

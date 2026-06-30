@@ -1,4 +1,4 @@
-"""Smoke-test a frozen dphe-pipeline executable without relying on Python at runtime."""
+"""Smoke-test a frozen DeepPheVizDbCreator executable without Python at runtime."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def main() -> int:
             f"stdout:\n{help_result.stdout}\nstderr:\n{help_result.stderr}"
         )
 
-    with tempfile.TemporaryDirectory(prefix="dphe-pipeline-smoke-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="DeepPheVizDbCreator-smoke-") as temp_dir:
         work_dir = Path(temp_dir)
         run_result = _run(binary, cwd=work_dir)
         expected = work_dir / "output" / "databases" / "individual" / "deepphe.sqlite3"
@@ -47,7 +47,7 @@ def main() -> int:
 
     # Exercise frozen multiprocessing explicitly. The default example uses a directory,
     # while --input-zipdir dispatches zip files through worker processes.
-    with tempfile.TemporaryDirectory(prefix="dphe-pipeline-multiprocess-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="DeepPheVizDbCreator-multiprocess-") as temp_dir:
         work_dir = Path(temp_dir)
         zip_dir = work_dir / "zips"
         zip_dir.mkdir()
