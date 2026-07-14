@@ -1,0 +1,17 @@
+{
+  "name": "dphe-db-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "DeepPhe pipeline for loading raw NLP output, building an OMOP SQLite database, and extracting cancer concepts and patient summaries.",
+  "scripts": {
+    "docs:install": "npm ci --prefix docs-site",
+    "docs:start": "npm --prefix docs-site run start",
+    "docs:build": "npm --prefix docs-site run build",
+    "docs:serve": "npm --prefix docs-site run serve",
+    "docs:typecheck": "npm --prefix docs-site run typecheck"
+  },
+  "engines": {
+    "node": ">=20.0"
+  }
+}

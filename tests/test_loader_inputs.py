@@ -47,6 +47,52 @@ def test_load_directory_recursive(tmp_path: Path) -> None:
     assert decode_stored_content(*rows["b.json"]) == '{"b": 2}'
 
 
+def test_load_deduplicates_timestamped_deepphe_documents_by_name(tmp_path: Path) -> None:
+    first_source = tmp_path / "first"
+    second_source = tmp_path / "second"
+    first_source.mkdir()
+    second_source.mkdir()
+
+    first_doc = (
+        '{"id":"fake_patient1_01012026010101_D_1",'
+        '"name":"fake_patient1_doc1_RAD",'
+        '"type":"Radiology Report",'
+        '"date":"201001231045"}'
+    )
+    second_doc = (
+        '{"id":"fake_patient1_02012026020202_D_1",'
+        '"name":"fake_patient1_doc1_RAD",'
+        '"type":"Radiology Report",'
+        '"date":"201001231045",'
+        '"episode":"Pre-diagnostic"}'
+    )
+    (first_source / "fake_patient1_01012026010101_D_1_Doc.json").write_text(
+        first_doc, encoding="utf-8"
+    )
+    (second_source / "fake_patient1_02012026020202_D_1_Doc.json").write_text(
+        second_doc, encoding="utf-8"
+    )
+
+    db_path = tmp_path / "out.sqlite3"
+    assert load_files_to_db(str(first_source), str(db_path), compress="none") == (1, 0)
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            "INSERT INTO files (filename, content, encoding) VALUES (?, ?, ?)",
+            ("fake_patient1_99999999999999_D_1_Doc.json", first_doc.encode("utf-8"), "raw"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    assert load_files_to_db(str(second_source), str(db_path), compress="none") == (1, 0)
+
+    rows = _stored_rows(db_path)
+    assert set(rows) == {"fake_patient1_doc1_RAD_Doc.json"}
+    assert decode_stored_content(*rows["fake_patient1_doc1_RAD_Doc.json"]) == second_doc
+
+
 def test_load_skips_os_metadata_files(tmp_path: Path) -> None:
     source = tmp_path / "src"
     (source / "sub").mkdir(parents=True)

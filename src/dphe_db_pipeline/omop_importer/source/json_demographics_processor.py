@@ -201,6 +201,8 @@ def run_json_import(json_path: str, sqlite_conn: sqlite3.Connection, sqlite_curs
         }
       ]
     }
+    A bare top-level patient array is also accepted for compatibility with
+    older packaged examples.
     """
     _ensure_json_mode_tables(sqlite_cursor, sqlite_conn)
 
@@ -209,7 +211,12 @@ def run_json_import(json_path: str, sqlite_conn: sqlite3.Connection, sqlite_curs
     skipped = 0
 
     for payload in _load_json_files(json_path):
-        patients = payload.get("patients", []) if isinstance(payload, dict) else []
+        if isinstance(payload, dict):
+            patients = payload.get("patients", [])
+        elif isinstance(payload, list):
+            patients = payload
+        else:
+            patients = []
         if not isinstance(patients, list):
             raise ValueError("JSON payload must contain a 'patients' array.")
 
@@ -262,4 +269,3 @@ def run_json_import(json_path: str, sqlite_conn: sqlite3.Connection, sqlite_curs
         dx_updates,
         skipped,
     )
-

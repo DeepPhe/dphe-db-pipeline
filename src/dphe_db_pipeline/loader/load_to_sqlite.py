@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
 Script to load files from a directory into SQLite database.
-Key: filename (basename only -- directory prefixes are stripped)
+Key: filename (directory prefixes stripped); timestamped DeepPhe document
+     files are keyed by stable patient/document identity.
 Value: file content (as bytes), optionally compressed
 """
 
 import argparse
+import json
 import logging
 import os
+import re
 import sqlite3
 import sys
 from functools import partial
@@ -29,6 +32,70 @@ def _basename(name: str) -> str:
     """
     return name.rsplit('/', 1)[-1]
 
+
+_DEEPPHE_DOC_ID_RE = re.compile(r'^(?P<patient_id>.+)_\d{14}_D_(?P<document_number>\d+)$')
+_DEEPPHE_DOC_FILENAME_RE = re.compile(
+    r'^(?P<patient_id>.+)_\d{14}_D_(?P<document_number>\d+)_Doc\.json$'
+)
+
+
+def _extract_doc_parts(base_name: str, document: dict) -> tuple[str, str]:
+    """Return patient id and document number from a timestamped DeepPhe document."""
+    for candidate in (document.get('id'), base_name.removesuffix('_Doc.json')):
+        match = _DEEPPHE_DOC_ID_RE.match(str(candidate or ''))
+        if match:
+            return match.group('patient_id'), match.group('document_number')
+
+    match = _DEEPPHE_DOC_FILENAME_RE.match(base_name)
+    return (match.group('patient_id'), match.group('document_number')) if match else ('', '')
+
+
+def _escape_like(value: str) -> str:
+    return value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
+
+def _legacy_timestamped_doc_like(patient_id: str, document_number: str) -> str:
+    escaped_patient_id = _escape_like(patient_id)
+    return f'{escaped_patient_id}\\_%\\_D\\_{document_number}\\_Doc.json'
+
+
+def _storage_entry(name: str, content: bytes) -> tuple[str, str]:
+    """Return the SQLite key and legacy duplicate pattern for an input file.
+
+    DeepPhe document filenames include a run timestamp, so repeated pipeline
+    runs can otherwise store the same source report many times under different
+    keys. For timestamped ``*_Doc.json`` rows, key by patient plus stable
+    document name while leaving non-document files on their basename.
+    """
+    base = _basename(name)
+    if not base.endswith('_Doc.json'):
+        return base, ''
+
+    try:
+        document = json.loads(content.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return base, ''
+
+    if not isinstance(document, dict):
+        return base, ''
+
+    patient_id, document_number = _extract_doc_parts(base, document)
+    document_name = str(document.get('name') or '').strip()
+    if not patient_id or not document_name:
+        return base, ''
+
+    stable_stem = _basename(document_name).removesuffix('.json')
+    if not stable_stem:
+        return base, ''
+
+    legacy_like = (
+        _legacy_timestamped_doc_like(patient_id, document_number) if document_number else ''
+    )
+
+    if stable_stem.startswith(f'{patient_id}_'):
+        return f'{stable_stem.removesuffix("_Doc")}_Doc.json', legacy_like
+
+    return f'{patient_id}_{stable_stem.removesuffix("_Doc")}_Doc.json', legacy_like
 
 # OS/filesystem metadata files that should never be ingested as patient data.
 _IGNORED_BASENAMES = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
@@ -101,7 +168,7 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
 
     try:
         # Read all files from zip first (parallel processing - no lock needed)
-        file_data_list = []  # tuples of (filename, content_bytes, encoding)
+        file_data_list = []  # tuples of (filename, content_bytes, encoding, legacy_like)
         with ZipFile(zip_path, 'r') as zf:
             # Get list of files in zip (exclude directories and OS metadata)
             file_list = [
@@ -117,8 +184,9 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                     # Optionally compress
                     store_bytes, encoding = maybe_compress(value, algo_name, compress_fn, min_compress_bytes)
 
-                    # Store data for batch insertion (basename only as key)
-                    file_data_list.append((_basename(file_name), store_bytes, encoding))
+                    # Store data for batch insertion.
+                    storage_key, legacy_like = _storage_entry(file_name, value)
+                    file_data_list.append((storage_key, store_bytes, encoding, legacy_like))
 
                     loaded_count += 1
                     total_bytes += len(value)
@@ -141,10 +209,24 @@ def process_single_zip(zip_path, db_path, lock, compress_algo: str = 'zstd', com
                 # Begin transaction for this zip file
                 conn.execute('BEGIN IMMEDIATE')
 
+                legacy_patterns = [
+                    (legacy_like,)
+                    for _key, _content, _encoding, legacy_like in file_data_list
+                    if legacy_like
+                ]
+                if legacy_patterns:
+                    cursor.executemany(
+                        "DELETE FROM files WHERE filename LIKE ? ESCAPE '\\'",
+                        legacy_patterns,
+                    )
+
                 # Batch insert all files from this zip
                 cursor.executemany(
                     'INSERT OR REPLACE INTO files (filename, content, encoding) VALUES (?, ?, ?)',
-                    file_data_list
+                    [
+                        (storage_key, content_bytes, encoding)
+                        for storage_key, content_bytes, encoding, _legacy_like in file_data_list
+                    ]
                 )
 
                 # Commit transaction for this zip
@@ -297,9 +379,15 @@ def load_files_to_db(
                     store_bytes, encoding = maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
 
                     # Store in SQLite (will replace if key exists)
+                    storage_key, legacy_like = _storage_entry(file_name, value)
+                    if legacy_like:
+                        cursor.execute(
+                            "DELETE FROM files WHERE filename LIKE ? ESCAPE '\\'",
+                            (legacy_like,),
+                        )
                     cursor.execute(
                         'INSERT OR REPLACE INTO files (filename, content, encoding) VALUES (?, ?, ?)',
-                        (_basename(file_name), store_bytes, encoding)
+                        (storage_key, store_bytes, encoding)
                     )
 
                     loaded_count += 1
@@ -334,11 +422,6 @@ def load_files_to_db(
 
         for file_path in files:
             try:
-                # Use the file's basename as key, dropping any directory
-                # prefix. This keeps keys identical regardless of the OS that
-                # built the DB and consistent with the zip-loading paths.
-                key = file_path.name
-
                 # Read file content as value
                 with open(file_path, 'rb') as f:
                     value = f.read()
@@ -347,9 +430,15 @@ def load_files_to_db(
                 store_bytes, encoding = maybe_compress(value, algo_name_main, compress_fn_main, min_compress_bytes)
 
                 # Store in SQLite
+                storage_key, legacy_like = _storage_entry(file_path.name, value)
+                if legacy_like:
+                    cursor.execute(
+                        "DELETE FROM files WHERE filename LIKE ? ESCAPE '\\'",
+                        (legacy_like,),
+                    )
                 cursor.execute(
                     'INSERT OR REPLACE INTO files (filename, content, encoding) VALUES (?, ?, ?)',
-                    (key, store_bytes, encoding)
+                    (storage_key, store_bytes, encoding)
                 )
 
                 loaded_count += 1

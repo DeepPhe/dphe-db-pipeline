@@ -71,6 +71,18 @@ uv run ruff check src/dphe_db_pipeline tests
 uv run mypy src/dphe_db_pipeline
 ```
 
+## Documentation site
+
+The Docusaurus documentation site lives in `docs-site/` and publishes the top-level
+`docs/` content to GitHub Pages at
+<https://deepphe.github.io/dphe-db-pipeline/>.
+
+```bash
+npm run docs:install
+npm run docs:start
+npm run docs:build
+```
+
 ## Standalone binaries
 
 Unsigned one-file executables can be built with PyInstaller. See

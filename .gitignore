@@ -11,6 +11,7 @@
 
 # Python
 __pycache__/
+node_modules/
 *.py[cod]
 *$py.class
 *.so
@@ -141,6 +142,8 @@ Thumbs.db
 
 # Documentation builds
 docs/_build/
+docs-site/.docusaurus/
+docs-site/build/
 site/
 
 # Distribution / packaging

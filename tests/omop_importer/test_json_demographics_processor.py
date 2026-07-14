@@ -90,6 +90,23 @@ class JsonDemographicsProcessorTests(unittest.TestCase):
             cur.execute("SELECT PERSON_ID, CANCER FROM CALCULATED_DX_DATA ORDER BY PERSON_ID")
             self.assertEqual(cur.fetchall(), [("p1", "B"), ("p2", "M")])
 
+    def test_top_level_patient_array_is_accepted(self) -> None:
+        payload = [
+            {
+                "PatientID": "p1",
+                "Gender": "female",
+                "CancerType": "BreastCancer",
+                "AgeAtDiagnosis": 50,
+            }
+        ]
+
+        _, cur, _ = self.run_import(payload)
+
+        cur.execute("SELECT PERSON_ID, GENDER FROM CALCULATED_PATIENT_DATA")
+        self.assertEqual(cur.fetchall(), [("p1", "female")])
+        cur.execute("SELECT PERSON_ID, CANCER, AGE_AT_DX FROM CALCULATED_DX_DATA")
+        self.assertEqual(cur.fetchall(), [("p1", "B", 50)])
+
     def test_invalid_and_unknown_values_become_null_and_missing_ids_are_skipped(self) -> None:
         payload = {
             "patients": [
@@ -157,4 +174,3 @@ class JsonDemographicsProcessorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

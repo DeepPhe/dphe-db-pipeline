@@ -1,0 +1,81 @@
+:root {
+  --ifm-color-primary: #006b6b;
+  --ifm-color-primary-dark: #006060;
+  --ifm-color-primary-darker: #005b5b;
+  --ifm-color-primary-darkest: #004b4b;
+  --ifm-color-primary-light: #007676;
+  --ifm-color-primary-lighter: #007b7b;
+  --ifm-color-primary-lightest: #008b8b;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgb(0 107 107 / 10%);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #4fd1c5;
+  --ifm-color-primary-dark: #36c9bb;
+  --ifm-color-primary-darker: #2fc0b3;
+  --ifm-color-primary-darkest: #279e94;
+  --ifm-color-primary-light: #68d9cf;
+  --ifm-color-primary-lighter: #75ddd4;
+  --ifm-color-primary-lightest: #9be7e0;
+  --docusaurus-highlighted-code-line-bg: rgb(79 209 197 / 20%);
+}
+
+.theme-doc-markdown table {
+  display: table;
+  width: 100%;
+}
+
+.theme-doc-markdown figcaption,
+.theme-doc-markdown em {
+  color: var(--ifm-color-emphasis-700);
+}
+
+@media print {
+  .navbar,
+  .theme-doc-sidebar-container,
+  .theme-doc-toc-desktop,
+  .theme-doc-breadcrumbs,
+  .theme-doc-footer,
+  .theme-edit-this-page,
+  .pagination-nav,
+  .footer,
+  .theme-back-to-top-button,
+  .theme-doc-toc-mobile {
+    display: none !important;
+  }
+
+  .main-wrapper,
+  [class*='docMainContainer'],
+  [class*='docItemCol'],
+  [class*='docItemContainer'],
+  .container,
+  .row,
+  .col {
+    display: block !important;
+    margin: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .theme-doc-markdown {
+    font-size: 10.5pt;
+  }
+
+  .theme-doc-markdown h1,
+  .theme-doc-markdown h2,
+  .theme-doc-markdown h3 {
+    break-after: avoid;
+  }
+
+  .theme-doc-markdown img,
+  .theme-doc-markdown table,
+  .theme-doc-markdown pre {
+    break-inside: avoid;
+  }
+
+  .print-page-break {
+    break-before: page;
+  }
+}
