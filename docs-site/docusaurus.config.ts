@@ -63,6 +63,10 @@ const config: Config = {
     },
     navbar: {
       title: 'DeepPhe DB Pipeline',
+      logo: {
+        alt: 'DeepPhe',
+        src: 'img/logo.svg',
+      },
       items: [
         {
           type: 'docSidebar',
