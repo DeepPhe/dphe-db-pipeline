@@ -60,7 +60,10 @@ def test_full_pipeline(tmp_path):
     assert loaded > 0, "Stage 1: no files were loaded from the zip"
 
     conn = sqlite3.connect(str(db_path))
-    assert conn.execute("SELECT COUNT(*) FROM files").fetchone()[0] == loaded
+    persisted_files = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+    # Timestamped DeepPhe document entries are normalized to stable filenames, so
+    # multiple input ZIP entries can intentionally replace the same files row.
+    assert 0 < persisted_files <= loaded
     conn.close()
 
     # ------------------------------------------------------------------
