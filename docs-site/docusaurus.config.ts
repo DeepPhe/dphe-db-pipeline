@@ -66,6 +66,7 @@ const config: Config = {
       logo: {
         alt: 'DeepPhe',
         src: 'img/logo.svg',
+        srcDark: 'img/logo-dark.svg',
       },
       items: [
         {
