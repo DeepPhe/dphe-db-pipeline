@@ -21,6 +21,16 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Data Formats',
+      collapsed: false,
+      items: [
+        'formats/deepphe-input',
+        'formats/omop-input',
+        'formats/output-database',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Loader',
       collapsed: true,
       items: ['loader/API_REFERENCE', 'loader/EXTRACT_100_PATIENTS'],

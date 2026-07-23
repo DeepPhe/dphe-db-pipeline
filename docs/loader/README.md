@@ -2,6 +2,9 @@
 
 A Python toolkit to load files from directories or zip archives into a SQLite database, where the key is the filename and the value is the (optionally compressed) file content.
 
+For the DeepPhe NLP output this stage expects — file kinds, JSON shapes, and the naming rules
+that later stages depend on — see [DeepPhe input format](../formats/deepphe-input.md).
+
 ## Installation
 
 1. Install the project dependencies:
@@ -81,6 +84,9 @@ CREATE TABLE files (
 ```
 
 Writing the same key twice simply overwrites the existing row (SQLite `INSERT OR REPLACE`).
+
+Stage 3 later adds its own tables to this same database file. See
+[Output database](../formats/output-database.md) for the complete schema.
 
 ## Querying the Database
 

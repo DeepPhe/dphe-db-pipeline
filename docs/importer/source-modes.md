@@ -1,6 +1,8 @@
 # Source Modes
 
-This project supports three ingestion modes controlled by `SOURCE_TYPE`.
+This project supports three ingestion modes controlled by `SOURCE_TYPE`. This page covers how
+to **select and configure** a mode; for the tables, columns, and field values each mode
+expects, see [OMOP input format](../formats/omop-input.md).
 
 ## Mode summary
 

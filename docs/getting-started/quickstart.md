@@ -51,6 +51,11 @@ The default run takes no arguments because it uses the bundled example. When you
 pipeline at real data, these are the parameters you will typically reach for. Run
 `uv run dphe-pipeline --help` for the complete list.
 
+Before pointing the pipeline at your own data, check that it matches the expected shapes:
+[DeepPhe input format](../formats/deepphe-input.md) for Stage 1 and
+[OMOP input format](../formats/omop-input.md) for Stage 2. The
+[Output database](../formats/output-database.md) page documents what you get back.
+
 ### Choose the Stage 1 input
 
 By default Stage 1 reads the bundled example directory. Override it with exactly one of:

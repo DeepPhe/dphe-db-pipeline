@@ -1,6 +1,9 @@
 # Table Catalog
 
-This document groups the major tables by role.
+This document groups the major tables of the Stage 2 OMOP database (`omop.sqlite3`) by role.
+For the columns each source table must supply, see
+[OMOP input format](../formats/omop-input.md). For the final `deepphe.sqlite3` database the
+pipeline delivers, see [Output database](../formats/output-database.md).
 
 ## 1. Imported source tables
 

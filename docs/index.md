@@ -11,6 +11,12 @@ for downstream analysis and visualization.
 
 - [Quickstart](getting-started/quickstart.md) installs the project and runs the bundled
   example end to end.
+- [DeepPhe input format](formats/deepphe-input.md) specifies the DeepPhe NLP output the
+  pipeline expects, including the file naming rules extraction depends on.
+- [OMOP input format](formats/omop-input.md) specifies the demographics and diagnosis data
+  expected from JSON, CSV, or MySQL.
+- [Output database](formats/output-database.md) documents every table in the
+  `deepphe.sqlite3` database the pipeline produces.
 - [Loader](loader/README.md) explains the Stage 1 SQLite loader for directories, zip
   files, and zip directories.
 - [Source modes](importer/source-modes.md) explains how Stage 2 reads OMOP demographics
